@@ -12,7 +12,7 @@ def weighted_average(chunk):
         weighted += w * frame
     return (weighted / np.sum(weights)).astype(np.uint8)
 
-def weighted_average_exponential(chunk, gamma=0.9):
+def weighted_average_exponential(chunk, gamma=0.7):
     """
     Apply exponential weighting to emphasize recent frames more.
     gamma < 1 → more recent frames get much higher weight
@@ -39,6 +39,19 @@ def weighted_average_ramp(chunk, power=2):
     for frame, w in zip(chunk, weights):
         weighted += w * frame
     return weighted.astype(np.uint8)
+
+def blend_blur_with_last_frame(chunk, alpha=0.6):
+    """
+    Compute the weighted average of the entire chunk, 
+    then blend the last frame on top with some alpha factor.
+    """
+    blur = weighted_average(chunk)  # or your choice of method
+    last_frame = chunk[-1]
+    
+    # alpha blend: out = alpha*blur + (1-alpha)*last_frame
+    result = cv2.addWeighted(blur.astype(np.uint8), alpha,
+                             last_frame.astype(np.uint8), 1 - alpha, 0)
+    return result
 
 def read_video_in_chunks(cap, chunk_size, resize_to=None, skip_block=0):
     """
@@ -110,7 +123,10 @@ def motion_blur_chunked(
 
 if __name__ == "__main__":
     weighted_average_functions = [
-        weighted_average, weighted_average_exponential, weighted_average_ramp
+        weighted_average,
+        weighted_average_exponential,
+        weighted_average_ramp,
+        blend_blur_with_last_frame
     ]
 
     for weighted_function in weighted_average_functions:
@@ -118,8 +134,8 @@ if __name__ == "__main__":
         motion_blur_chunked(
             input_dir="input_videos/",
             output_dir=output_dir,
-            num_frames=15,
-            skip_frames=15,
+            num_frames=30,
+            skip_frames=0,
             resize_to=(224, 224),
             chunk_weight_function=weighted_function
         )
