@@ -12,7 +12,7 @@ def weighted_average(chunk):
         weighted += w * frame
     return (weighted / np.sum(weights)).astype(np.uint8)
 
-def weighted_average_exponential(chunk, gamma=0.7):
+def weighted_average_exponential(chunk, gamma=0.85):
     """
     Apply exponential weighting to emphasize recent frames more.
     gamma < 1 → more recent frames get much higher weight
@@ -40,12 +40,12 @@ def weighted_average_ramp(chunk, power=2):
         weighted += w * frame
     return weighted.astype(np.uint8)
 
-def blend_blur_with_last_frame(chunk, alpha=0.6):
+def blend_blur_with_last_frame(chunk, alpha=0.7):
     """
     Compute the weighted average of the entire chunk, 
     then blend the last frame on top with some alpha factor.
     """
-    blur = weighted_average(chunk)  # or your choice of method
+    blur = weighted_average_exponential(chunk)  # or your choice of method
     last_frame = chunk[-1]
     
     # alpha blend: out = alpha*blur + (1-alpha)*last_frame
