@@ -42,7 +42,7 @@ def play_comparison(
 ):
     frame_lists = []
     for fn in weight_fns:
-        fn_dir = Path(base_dir) / fn / video_name
+        fn_dir = base_dir / video_name / fn
         # frames = load_frames(fn_dir) # needs frames sorted by index, bit more complicated to implement
         frames = list(frame_generator_by_index(fn_dir, resize_to))
         frame_lists.append(frames)
@@ -104,5 +104,8 @@ if __name__ == "__main__":
     parser.add_argument("--fps", type=float, default=1.0, help="Playback speed")
     args = parser.parse_args()
 
-    weight_fns = os.listdir(args.base_dir)
-    play_comparison(args.base_dir, args.video_name, weight_fns, fps=args.fps)
+    base_dir = Path(args.base_dir)
+    video_path = base_dir / args.video_name
+    weight_fns = os.listdir(video_path)
+
+    play_comparison(base_dir, args.video_name, weight_fns, fps=args.fps)
