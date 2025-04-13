@@ -1,4 +1,6 @@
 import cv2
+import subprocess
+
 import numpy as np
 from pathlib import Path
 from tqdm import tqdm
@@ -52,6 +54,51 @@ def blend_blur_with_last_frame(chunk, alpha=0.7):
     result = cv2.addWeighted(blur.astype(np.uint8), alpha,
                              last_frame.astype(np.uint8), 1 - alpha, 0)
     return result
+
+#Helper function to extract subtitles from the mp4 if present
+def extract_subtitles_if_present(video_path, out_subtitle_path):
+    """
+    Checks if there's at least one subtitle stream in `video_path`, and if so,
+    extracts the first one (0:s:0) to `out_subtitle_path`.
+
+    This requires FFmpeg/FFprobe installed and accessible via command line.
+    """
+    # If we already have a subtitle file, skip re-extracting
+    if out_subtitle_path.exists():
+        print(f"Subtitle file already exists for {video_path.name}; skipping extraction.")
+        return
+    
+    try:
+        # 1) Check for any subtitle streams using ffprobe:
+        #    We look at streams of type 's' and see if any exist.
+        cmd_probe = [
+            "ffprobe", "-v", "error",
+            "-select_streams", "s",
+            "-show_entries", "stream=index",
+            "-of", "csv=p=0",
+            str(video_path)
+        ]
+        result = subprocess.run(cmd_probe, capture_output=True, text=True, check=True)
+
+        # If result.stdout is non-empty, there's at least one subtitle track
+        if result.stdout.strip():
+            print(f"Subtitle track found in {video_path.name}. Extracting ...")
+            # 2) Extract the first subtitle track (0:s:0) to SRT
+            cmd_extract = [
+                "ffmpeg", "-y",
+                "-i", str(video_path),
+                "-map", "0:s:0",
+                str(out_subtitle_path)
+            ]
+            subprocess.run(cmd_extract, check=True)
+            print(f"Subtitles saved to {out_subtitle_path}")
+        else:
+            print(f"No subtitles found in {video_path.name}.")
+
+    except subprocess.CalledProcessError:
+        print(f"No subtitles found or error extracting subtitles from {video_path.name}.")
+
+
 
 def read_video_in_chunks(cap, chunk_size, resize_to=None, skip_block=0):
     """
@@ -108,8 +155,11 @@ def motion_blur_chunked(
             continue
 
         video_name = video_path.stem
-        video_out_dir = output_dir / video_name
+        video_out_dir = output_dir / video_name / chunk_weight_function.__name__
         video_out_dir.mkdir(parents=True, exist_ok=True)
+
+        subtitle_path = output_dir / video_name / "subtitles.srt"
+        extract_subtitles_if_present(video_path, subtitle_path)
 
         for i, chunk in enumerate(read_video_in_chunks(
             cap, num_frames, resize_to, skip_frames
@@ -130,7 +180,7 @@ if __name__ == "__main__":
     ]
 
     for weighted_function in weighted_average_functions:
-        output_dir = f"motion_blurred_frames/{weighted_function.__name__}/"
+        output_dir = f"motion_blurred_frames/"
         motion_blur_chunked(
             input_dir="input_videos/",
             output_dir=output_dir,
