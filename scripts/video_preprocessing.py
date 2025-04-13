@@ -2,9 +2,9 @@ import os
 import cv2
 import subprocess
 import whisper
-import re 
 import json
 import datetime 
+import pysrt
 
 import moviepy.editor as mpy
 import numpy as np
@@ -230,58 +230,6 @@ def generate_srt_with_whisper(video_path_str, srt_path_str, model_name="base"):
 
     return transcription_successful
 
-def parse_srt_time(time_str):
-    """Converts SRT time format HH:MM:SS,ms to seconds."""
-    try:
-        # Handle potential variations in milliseconds separator (',' or '.')
-        time_str = time_str.replace(',', '.')
-        parts = time_str.split(':')
-        if len(parts) == 3:
-            hours = int(parts[0])
-            mins = int(parts[1])
-            sec_ms = parts[2].split('.')
-            secs = int(sec_ms[0])
-            ms = int(sec_ms[1].ljust(3, '0')[:3]) if len(sec_ms) > 1 else 0
-            total_seconds = hours * 3600 + mins * 60 + secs + ms / 1000.0
-            return total_seconds
-    except Exception as e:
-        print(f"Warning: Could not parse SRT time '{time_str}': {e}")
-    return None # Return None on parsing error
-
-def parse_srt_file(srt_path):
-    """Parses an SRT file into a list of (start_sec, end_sec, text) tuples."""
-    if not srt_path.exists():
-        print(f"SRT file not found: {srt_path}")
-        return []
-
-    subtitles = []
-    try:
-        with open(srt_path, 'r', encoding='utf-8') as f:
-            content = f.read().strip()
-            # Regex to find blocks: index, timestamp, text
-            # Allows for multi-line text
-            pattern = re.compile(r'(\d+)\s*\n(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*\n(.*?)(?=\n\n|\Z)', re.DOTALL | re.MULTILINE)
-            matches = pattern.findall(content)
-
-            for match in matches:
-                index, start_str, end_str, text = match
-                start_sec = parse_srt_time(start_str)
-                end_sec = parse_srt_time(end_str)
-                clean_text = text.strip().replace('\n', ' ') # Clean up text
-
-                if start_sec is not None and end_sec is not None:
-                    subtitles.append((start_sec, end_sec, clean_text))
-                else:
-                     print(f"Skipping subtitle index {index} due to timestamp parsing error.")
-
-    except Exception as e:
-        print(f"Error reading or parsing SRT file {srt_path}: {e}")
-        return [] # Return empty list on error
-
-    # Sort by start time just in case the SRT isn't perfectly ordered
-    subtitles.sort(key=lambda x: x[0])
-    return subtitles
-
 def read_video_in_chunks(cap, chunk_size, resize_to=None, skip_block=0):
     """
     Efficiently read `chunk_size` continuous frames, then skip `skip_block` frames.
@@ -469,7 +417,6 @@ if __name__ == "__main__":
     Path(INPUT_VIDEO_DIR).mkdir(parents=True, exist_ok=True)
     print(f"Input directory: {Path(INPUT_VIDEO_DIR).resolve()}")
     print(f"Base output directory: {Path(BASE_OUTPUT_DIR).resolve()}")
-    print(f"Whisper available: {WHISPER_AVAILABLE}")
 
     # --- Check for FFmpeg/FFprobe early ---
     try:
