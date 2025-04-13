@@ -259,131 +259,161 @@ def read_video_in_chunks(cap, chunk_size, resize_to=None, skip_block=0):
 
         frame_idx += 1
 
-def motion_blur_chunked(
-    input_dir,
-    output_dir,
-    num_frames=30,
-    skip_frames=0, # Changed default to 0 for clarity
-    resize_to=None,
-    chunk_weight_function=weighted_average,
-    whisper_model="base" # Added whisper model selection
-):
+def handle_subtitles(video_path, video_base_out_dir, video_name, whisper_model):
     """
-    Processes videos: extracts/generates subtitles, creates motion-blur frames
-    per chunk, aligns subtitles, and saves results with metadata.json.
+    Manages subtitle extraction, generation, and parsing for a video.
+
+    Args:
+        video_path (Path): Path to the input video file.
+        video_base_out_dir (Path): Base output directory for this video.
+        video_name (str): Stem name of the video file.
+        whisper_model (str): Name of the Whisper model to use for generation.
+
+    Returns:
+        list: A list of parsed subtitle tuples (start_sec, end_sec, text),
+              or an empty list if subtitles are unavailable or parsing fails.
     """
-    input_dir = Path(input_dir)
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    subtitle_path = video_base_out_dir / f"{video_name}.srt"
+    subtitles_exist = extract_subtitles_if_present(video_path, subtitle_path)
 
-    video_paths = sorted([p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() in ['.mp4', '.avi', '.mov', '.mkv']])
-    if not video_paths:
-        print(f"No video files found in {input_dir}")
-        return
-
-    print(f"Found {len(video_paths)} videos to process.")
-
-    for video_path in tqdm(video_paths, desc="Processing videos"):
-        print(f"\n--- Processing {video_path.name} ---")
-        video_name = video_path.stem
-        # Base output directory for this specific video
-        video_base_out_dir = output_dir / video_name
-        video_base_out_dir.mkdir(parents=True, exist_ok=True)
-
-        # Output directory for the specific frame averaging method
-        frame_method_name = chunk_weight_function.__name__
-        video_frames_out_dir = video_base_out_dir / frame_method_name
-        video_frames_out_dir.mkdir(parents=True, exist_ok=True)
-
-        # --- 1. Handle Subtitles (Extract or Generate) ---
-        subtitle_path = video_base_out_dir / f"{video_name}.srt"
-        subtitles_exist = extract_subtitles_if_present(video_path, subtitle_path)
-
-        if not subtitles_exist:
-            print("Attempting to generate subtitles with Whisper...")
-            generation_successful = generate_srt_with_whisper(str(video_path), str(subtitle_path), model_name=whisper_model)
-            if not generation_successful:
-                print(f"Warning: Failed to generate subtitles for {video_path.name}. Alignment will be skipped.")
-                subtitles_exist = False # Ensure flag is False
-            else:
-                subtitles_exist = True # Generation succeeded
-
-        # --- 2. Parse Subtitles (if they exist) ---
-        parsed_subtitles = []
-        if subtitles_exist:
-            print(f"Parsing subtitles from: {subtitle_path}")
-            parsed_subtitles = parse_srt_file(subtitle_path)
-            if not parsed_subtitles:
-                print(f"Warning: Subtitle file {subtitle_path} was empty or could not be parsed. No text alignment possible.")
+    if not subtitles_exist:
+        print("Attempting to generate subtitles with Whisper...")
+        generation_successful = generate_srt_with_whisper(str(video_path), str(subtitle_path), model_name=whisper_model)
+        if not generation_successful:
+            print(f"Warning: Failed to generate subtitles for {video_name}. Alignment will be skipped.")
+            return [] # Return empty list if generation fails
         else:
-             print("No subtitles available for alignment.")
+            subtitles_exist = True # Mark as existing after successful generation
 
-        # --- 3. Process Video Frames and Align Text ---
-        cap = cv2.VideoCapture(str(video_path))
-        if not cap.isOpened():
-            print(f"⚠️ Could not open video {video_path.name}")
+    # Parse subtitles if they exist and pysrt is available
+    parsed_subtitles = []
+    if subtitles_exist and PYSRT_AVAILABLE:
+        if subtitle_path.exists():
+            print(f"Parsing subtitles from: {subtitle_path} using pysrt")
+            try:
+                subs = pysrt.open(str(subtitle_path), encoding='utf-8')
+                for sub in subs:
+                    start_sec = sub.start.ordinal / 1000.0
+                    end_sec = sub.end.ordinal / 1000.0
+                    clean_text = sub.text.replace('\n', ' ').strip()
+                    parsed_subtitles.append((start_sec, end_sec, clean_text))
+                if not parsed_subtitles:
+                     print(f"Warning: pysrt parsed 0 subtitles from {subtitle_path}. Check file content.")
+                else:
+                     print(f"Successfully parsed {len(parsed_subtitles)} subtitles.")
+            except Exception as e:
+                print(f"Error parsing SRT file {subtitle_path} with pysrt: {e}")
+                parsed_subtitles = [] # Ensure empty on error
+        else:
+            print(f"Warning: Subtitle file {subtitle_path} not found despite subtitles_exist=True flag.")
+            # No file to parse
+    elif subtitles_exist and not PYSRT_AVAILABLE:
+         print("Warning: Subtitles exist but pysrt library not installed. Cannot parse for alignment.")
+         # Cannot proceed with alignment
+    else:
+         print("No subtitles available for alignment.")
+
+    return parsed_subtitles
+
+def process_video_chunks(cap, fps, parsed_subtitles, video_base_out_dir,
+                         num_frames, skip_frames, resize_to, chunk_weight_function):
+    """
+    Processes video frame chunks, applies averaging, aligns text, saves frames/metadata.
+
+    Args:
+        cap (cv2.VideoCapture): OpenCV video capture object.
+        fps (float): Frames per second of the video.
+        parsed_subtitles (list): List of (start_sec, end_sec, text) tuples.
+        video_base_out_dir (Path): Base output directory for this video's files.
+        num_frames (int): Number of frames per chunk.
+        skip_frames (int): Number of frames to skip between chunks.
+        resize_to (tuple or None): Target dimensions for resizing frames.
+        chunk_weight_function (callable): Function to average frames in a chunk.
+
+    Returns:
+        list: A list of metadata dictionaries for each processed chunk.
+    """
+    video_metadata = []
+    total_frames_processed_in_video = 0
+    frame_method_name = chunk_weight_function.__name__
+
+    print(f"Processing frames with chunk_size={num_frames}, skip={skip_frames}, method='{frame_method_name}'...")
+    for i, chunk in enumerate(read_video_in_chunks(cap, num_frames, resize_to, skip_frames)):
+        if not chunk: continue
+
+        start_cycle_frame_index = i * (num_frames + skip_frames)
+        chunk_start_time = start_cycle_frame_index / fps
+        chunk_end_time = (start_cycle_frame_index + num_frames) / fps
+        total_frames_processed_in_video += len(chunk)
+
+        # Apply Motion Blur/Averaging
+        blur = chunk_weight_function(chunk)
+        if blur is None:
+            print(f"Warning: Frame averaging failed for chunk {i}")
             continue
 
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        if fps is None or fps <= 0:
-            print(f"⚠️ Could not get valid FPS for {video_path.name}. Assuming 30 FPS for alignment.")
-            fps = 30 # Fallback FPS
+        # Save Motion Blur Frame
+        relative_image_filename = f"{frame_method_name}/frame{i+1:05d}.jpg" # Padded index
+        out_path_img = video_base_out_dir / relative_image_filename
+        out_path_img.parent.mkdir(parents=True, exist_ok=True) # Ensure frame method subdir exists
+        cv2.imwrite(str(out_path_img), blur)
 
-        video_metadata = [] # List to store metadata for this video
-        total_frames_processed_in_video = 0
+        # Align Subtitles
+        aligned_text = ""
+        if parsed_subtitles: # Check if list is non-empty
+            overlapping_texts = []
+            for sub_start, sub_end, sub_text in parsed_subtitles:
+                # Overlap check: max(start times) < min(end times)
+                if max(chunk_start_time, sub_start) < min(chunk_end_time, sub_end):
+                    overlapping_texts.append(sub_text)
+            aligned_text = " ".join(overlapping_texts).strip()
 
-        print(f"Processing frames with chunk_size={num_frames}, skip={skip_frames}, method='{frame_method_name}'...")
-        # Use tqdm for inner loop progress if desired, though outer loop might be sufficient
-        # for i, chunk in tqdm(enumerate(read_video_in_chunks(cap, num_frames, resize_to, skip_frames)), desc="Processing chunks"):
-        for i, chunk in enumerate(read_video_in_chunks(cap, num_frames, resize_to, skip_frames)):
-            if not chunk: continue # Skip if chunk is empty (shouldn't happen with current logic)
+        # Store Metadata
+        chunk_metadata = {
+            "image_file": relative_image_filename, # Relative path
+            "start_time_sec": round(chunk_start_time, 3),
+            "end_time_sec": round(chunk_end_time, 3),
+            "text": aligned_text
+        }
+        video_metadata.append(chunk_metadata)
 
-            # --- Calculate Chunk Timestamps ---
-            # Frame index marks the start of the *cycle* for this chunk
-            start_cycle_frame_index = i * (num_frames + skip_frames)
-            # The actual frames used are from start_cycle_frame_index to start_cycle_frame_index + num_frames - 1
-            chunk_start_time = start_cycle_frame_index / fps
-            # End time is the start of the next frame after the chunk ends
-            chunk_end_time = (start_cycle_frame_index + num_frames) / fps
-            total_frames_processed_in_video += len(chunk) # Track actual frames used
+    print(f"Processed {total_frames_processed_in_video} frames into {len(video_metadata)} chunks.")
+    return video_metadata
 
-            # --- Apply Motion Blur ---
-            blur = chunk_weight_function(chunk)
-            if blur is None: # Handle potential failure in weight function
-                print(f"Warning: Frame averaging failed for chunk {i} in {video_path.name}")
-                continue
+def process_single_video(video_path, base_output_dir, num_frames, skip_frames,
+                         resize_to, chunk_weight_function, whisper_model):
+    """
+    Orchestrates the processing pipeline for a single video file.
+    """
+    print(f"\n--- Processing {video_path.name} ---")
+    video_name = video_path.stem
+    video_base_out_dir = base_output_dir / video_name
+    video_base_out_dir.mkdir(parents=True, exist_ok=True)
 
-            # --- Save Motion Blur Frame ---
-            # Use relative path for metadata
-            relative_image_filename = f"{frame_method_name}/frame{i+1:05d}.jpg" # Padded index
-            out_path_img = video_base_out_dir / relative_image_filename
-            # Ensure the directory exists (needed because relative_image_filename includes subfolder)
-            out_path_img.parent.mkdir(parents=True, exist_ok=True)
-            cv2.imwrite(str(out_path_img), blur)
+    # Step 1: Handle Subtitles (Extract/Generate/Parse)
+    parsed_subtitles = handle_subtitles(video_path, video_base_out_dir, video_name, whisper_model)
 
-            # --- Align Subtitles ---
-            aligned_text = ""
-            if parsed_subtitles:
-                overlapping_texts = []
-                for sub_start, sub_end, sub_text in parsed_subtitles:
-                    # Check for overlap: max(chunk_start, sub_start) < min(chunk_end, sub_end)
-                    if max(chunk_start_time, sub_start) < min(chunk_end_time, sub_end):
-                        overlapping_texts.append(sub_text)
-                aligned_text = " ".join(overlapping_texts).strip()
+    # Step 2: Process Video Frames and Align Text
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        print(f"⚠️ Could not open video {video_path.name}")
+        return # Skip this video
 
-            # --- Store Metadata ---
-            chunk_metadata = {
-                "image_file": relative_image_filename, # Relative path within video's output dir
-                "start_time_sec": round(chunk_start_time, 3),
-                "end_time_sec": round(chunk_end_time, 3),
-                "text": aligned_text
-            }
-            video_metadata.append(chunk_metadata)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    if fps is None or fps <= 0:
+        print(f"⚠️ Could not get valid FPS for {video_path.name}. Assuming 30 FPS.")
+        fps = 30.0 # Use float
 
-        print(f"Processed {total_frames_processed_in_video} frames into {len(video_metadata)} chunks.")
-        cap.release()
+    # Process chunks and get metadata
+    video_metadata = process_video_chunks(
+        cap, fps, parsed_subtitles, video_base_out_dir,
+        num_frames, skip_frames, resize_to, chunk_weight_function
+    )
 
-        # --- 4. Save Metadata to JSON ---
+    cap.release()
+
+    # Step 3: Save Metadata to JSON
+    if video_metadata: # Only save if some chunks were processed
         metadata_path = video_base_out_dir / "metadata.json"
         try:
             with open(metadata_path, 'w', encoding='utf-8') as f:
@@ -391,8 +421,55 @@ def motion_blur_chunked(
             print(f"Metadata saved to: {metadata_path}")
         except Exception as e:
             print(f"Error saving metadata to {metadata_path}: {e}")
+    else:
+        print(f"No metadata generated for {video_path.name} (perhaps no frames or processing error).")
 
-        print(f"--- Finished {video_path.name} ---")
+    print(f"--- Finished {video_path.name} ---")
+
+def motion_blur_chunked(
+    input_dir,
+    output_dir,
+    num_frames=30,
+    skip_frames=0,
+    resize_to=None,
+    chunk_weight_function=weighted_average,
+    whisper_model="base"
+):
+    """
+    Iterates through videos in input_dir and processes each one.
+
+    Args:
+        input_dir (str or Path): Directory containing input video files.
+        output_dir (str or Path): Base directory to save processed output.
+        num_frames (int): Number of frames per chunk.
+        skip_frames (int): Number of frames to skip between chunks.
+        resize_to (tuple or None): Target dimensions for resizing frames (width, height).
+        chunk_weight_function (callable): Function to average frames in a chunk.
+        whisper_model (str): Whisper model name for subtitle generation.
+    """
+    input_dir = Path(input_dir)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True) # Ensure base output dir exists
+
+    # Find video files
+    video_paths = sorted([p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() in ['.mp4', '.avi', '.mov', '.mkv']])
+    if not video_paths:
+        print(f"No video files found in {input_dir}")
+        return
+
+    print(f"Found {len(video_paths)} videos to process in {input_dir.resolve()}.")
+
+    # Process each video using the new helper function
+    for video_path in tqdm(video_paths, desc="Processing videos"):
+        process_single_video(
+            video_path,
+            output_dir, # Pass the base output dir
+            num_frames,
+            skip_frames,
+            resize_to,
+            chunk_weight_function,
+            whisper_model
+        )
 
 if __name__ == "__main__":
     print("Starting video processing pipeline...")
