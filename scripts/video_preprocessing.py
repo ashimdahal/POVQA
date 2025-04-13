@@ -287,7 +287,7 @@ def handle_subtitles(video_path, video_base_out_dir, video_name, whisper_model):
 
     # Parse subtitles if they exist and pysrt is available
     parsed_subtitles = []
-    if subtitles_exist and PYSRT_AVAILABLE:
+    if subtitles_exist: 
         if subtitle_path.exists():
             print(f"Parsing subtitles from: {subtitle_path} using pysrt")
             try:
@@ -307,7 +307,7 @@ def handle_subtitles(video_path, video_base_out_dir, video_name, whisper_model):
         else:
             print(f"Warning: Subtitle file {subtitle_path} not found despite subtitles_exist=True flag.")
             # No file to parse
-    elif subtitles_exist and not PYSRT_AVAILABLE:
+    elif subtitles_exist: 
          print("Warning: Subtitles exist but pysrt library not installed. Cannot parse for alignment.")
          # Cannot proceed with alignment
     else:
@@ -315,15 +315,15 @@ def handle_subtitles(video_path, video_base_out_dir, video_name, whisper_model):
 
     return parsed_subtitles
 
-def process_video_chunks(cap, fps, parsed_subtitles, video_base_out_dir,
+def process_video_chunks(cap, fps, video_base_out_dir,
                          num_frames, skip_frames, resize_to, chunk_weight_function):
     """
-    Processes video frame chunks, applies averaging, aligns text, saves frames/metadata.
+    Processes video frame chunks, applies averaging, saves frames, and collects chunk metadata.
+    Returns a list of chunk metadata dictionaries. Does NOT perform text alignment.
 
     Args:
         cap (cv2.VideoCapture): OpenCV video capture object.
         fps (float): Frames per second of the video.
-        parsed_subtitles (list): List of (start_sec, end_sec, text) tuples.
         video_base_out_dir (Path): Base output directory for this video's files.
         num_frames (int): Number of frames per chunk.
         skip_frames (int): Number of frames to skip between chunks.
@@ -332,8 +332,10 @@ def process_video_chunks(cap, fps, parsed_subtitles, video_base_out_dir,
 
     Returns:
         list: A list of metadata dictionaries for each processed chunk.
+              Each dict contains: 'image_file_range', 'saved_image_file',
+              'chunk_start_time_sec', 'chunk_end_time_sec'.
     """
-    video_metadata = []
+    chunk_metadata_list = [] # Store results for this method
     total_frames_processed_in_video = 0
     frame_method_name = chunk_weight_function.__name__
 
@@ -341,7 +343,11 @@ def process_video_chunks(cap, fps, parsed_subtitles, video_base_out_dir,
     for i, chunk in enumerate(read_video_in_chunks(cap, num_frames, resize_to, skip_frames)):
         if not chunk: continue
 
-        start_cycle_frame_index = i * (num_frames + skip_frames)
+        # Calculate frame numbers (1-based) and times (0-based seconds)
+        start_cycle_frame_index = i * (num_frames + skip_frames) # 0-based index
+        start_frame_num = start_cycle_frame_index + 1          # 1-based frame number
+        end_frame_num = start_cycle_frame_index + num_frames     # 1-based frame number
+
         chunk_start_time = start_cycle_frame_index / fps
         chunk_end_time = (start_cycle_frame_index + num_frames) / fps
         total_frames_processed_in_video += len(chunk)
@@ -349,41 +355,37 @@ def process_video_chunks(cap, fps, parsed_subtitles, video_base_out_dir,
         # Apply Motion Blur/Averaging
         blur = chunk_weight_function(chunk)
         if blur is None:
-            print(f"Warning: Frame averaging failed for chunk {i}")
+            print(f"Warning: Frame averaging failed for chunk {i} (starts frame {start_frame_num})")
             continue
 
         # Save Motion Blur Frame
-        relative_image_filename = f"{frame_method_name}/frame{i+1:05d}.jpg" # Padded index
-        out_path_img = video_base_out_dir / relative_image_filename
-        out_path_img.parent.mkdir(parents=True, exist_ok=True) # Ensure frame method subdir exists
+        output_image_filename = f"frame{i+1:09d}.jpg" # Padded chunk index
+        relative_image_path = f"{frame_method_name}/{output_image_filename}"
+        out_path_img = video_base_out_dir / relative_image_path
+        out_path_img.parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(str(out_path_img), blur)
 
-        # Align Subtitles
-        aligned_text = ""
-        if parsed_subtitles: # Check if list is non-empty
-            overlapping_texts = []
-            for sub_start, sub_end, sub_text in parsed_subtitles:
-                # Overlap check: max(start times) < min(end times)
-                if max(chunk_start_time, sub_start) < min(chunk_end_time, sub_end):
-                    overlapping_texts.append(sub_text)
-            aligned_text = " ".join(overlapping_texts).strip()
+        # Create frame range string
+        image_file_range_str = f"frame{start_frame_num:05d}-frame{end_frame_num:05d}"
 
-        # Store Metadata
+        # Store Chunk Metadata (without text alignment here)
         chunk_metadata = {
-            "image_file": relative_image_filename, # Relative path
-            "start_time_sec": round(chunk_start_time, 3),
-            "end_time_sec": round(chunk_end_time, 3),
-            "text": aligned_text
+            "image_file_range": image_file_range_str,
+            "saved_image_file": relative_image_path, # Keep path to actual saved file
+            "chunk_start_time_sec": round(chunk_start_time, 3), # Renamed for clarity
+            "chunk_end_time_sec": round(chunk_end_time, 3)   # Renamed for clarity
         }
-        video_metadata.append(chunk_metadata)
+        chunk_metadata_list.append(chunk_metadata)
 
-    print(f"Processed {total_frames_processed_in_video} frames into {len(video_metadata)} chunks.")
-    return video_metadata
+    print(f"Processed {total_frames_processed_in_video} frames into {len(chunk_metadata_list)} chunks.")
+    # Return the list of chunk metadata
+    return chunk_metadata_list
 
 def process_single_video(video_path, base_output_dir, num_frames, skip_frames,
                          resize_to, chunk_weight_function, whisper_model):
     """
     Orchestrates the processing pipeline for a single video file.
+    MODIFIED: Creates text-centric metadata structure including gaps between subtitles.
     """
     print(f"\n--- Processing {video_path.name} ---")
     video_name = video_path.stem
@@ -391,38 +393,125 @@ def process_single_video(video_path, base_output_dir, num_frames, skip_frames,
     video_base_out_dir.mkdir(parents=True, exist_ok=True)
 
     # Step 1: Handle Subtitles (Extract/Generate/Parse)
+    # Returns list of (sub_start, sub_end, sub_text), sorted by start time
     parsed_subtitles = handle_subtitles(video_path, video_base_out_dir, video_name, whisper_model)
 
-    # Step 2: Process Video Frames and Align Text
+    # Step 2: Process Video Frames (Get chunk metadata list)
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
         print(f"⚠️ Could not open video {video_path.name}")
-        return # Skip this video
+        return
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     if fps is None or fps <= 0:
         print(f"⚠️ Could not get valid FPS for {video_path.name}. Assuming 30 FPS.")
-        fps = 30.0 # Use float
+        fps = 30.0
 
-    # Process chunks and get metadata
-    video_metadata = process_video_chunks(
-        cap, fps, parsed_subtitles, video_base_out_dir,
+    # Get the list of processed chunk metadata, sorted by time
+    # Each dict: {'image_file_range', 'saved_image_file', 'chunk_start_time_sec', 'chunk_end_time_sec'}
+    chunk_metadata_list = process_video_chunks(
+        cap, fps, video_base_out_dir,
         num_frames, skip_frames, resize_to, chunk_weight_function
     )
 
     cap.release()
 
-    # Step 3: Save Metadata to JSON
-    if video_metadata: # Only save if some chunks were processed
-        metadata_path = video_base_out_dir / "metadata.json"
+    # Step 3: Assemble Text-Centric Metadata Structure including Gaps
+    final_metadata_structure = []
+    last_event_end_time = 0.0 # Track the end time of the last processed segment (sub or gap)
+
+    if not chunk_metadata_list:
+        print("Skipping metadata assembly: No video chunks were processed.")
+    else:
+        print("Assembling text-centric metadata including gaps...")
+        # Helper function to find overlapping chunks for a given time interval
+        def find_overlapping_chunks(interval_start, interval_end):
+            simplified_chunks = []
+            for chunk_info in chunk_metadata_list:
+                chunk_start = chunk_info["chunk_start_time_sec"]
+                chunk_end = chunk_info["chunk_end_time_sec"]
+                # Overlap check: max(starts) < min(ends)
+                # Add small tolerance for floating point? Maybe not needed yet.
+                if max(interval_start, chunk_start) < min(interval_end, chunk_end):
+                    filename_basename = Path(chunk_info["saved_image_file"]).name
+                    simplified_chunks.append({
+                        "image_file_range": chunk_info["image_file_range"],
+                        "saved_chunk_filename": filename_basename,
+                        "chunk_start_time_sec": chunk_info["chunk_start_time_sec"],
+                        "chunk_end_time_sec": chunk_info["chunk_end_time_sec"]
+                    })
+            return simplified_chunks
+
+        # Iterate through subtitles to process gaps and subtitle segments
+        for sub_start, sub_end, sub_text in parsed_subtitles:
+            # Ensure start/end times are valid
+            if sub_start is None or sub_end is None or sub_start >= sub_end:
+                print(f"Skipping invalid subtitle segment: start={sub_start}, end={sub_end}, text='{sub_text[:20]}...'")
+                continue
+
+            # --- Process Gap Before Current Subtitle ---
+            # Check if there's a gap between the last event and this subtitle
+            # Use a small epsilon to avoid tiny gaps due to float precision
+            epsilon = 1e-3
+            if sub_start > last_event_end_time + epsilon:
+                gap_start = last_event_end_time
+                gap_end = sub_start
+                corresponding_chunks_gap = find_overlapping_chunks(gap_start, gap_end)
+                # Only add gap if it overlaps with some processed chunks
+                if corresponding_chunks_gap:
+                    final_metadata_structure.append({
+                        "text": "", # Empty text for gap
+                        "text_start_time_sec": round(gap_start, 3),
+                        "text_end_time_sec": round(gap_end, 3),
+                        "corresponding_chunks": corresponding_chunks_gap
+                    })
+                # Update last event end time even if gap wasn't added (to avoid reprocessing)
+                last_event_end_time = gap_end # End of the gap period
+
+            # --- Process Current Subtitle Segment ---
+            corresponding_chunks_sub = find_overlapping_chunks(sub_start, sub_end)
+            # Add subtitle entry (always add, even if no chunks overlap, unless text is empty?)
+            # Let's add it always, as it came from the SRT.
+            final_metadata_structure.append({
+                "text": sub_text,
+                "text_start_time_sec": round(sub_start, 3),
+                "text_end_time_sec": round(sub_end, 3),
+                "corresponding_chunks": corresponding_chunks_sub
+            })
+
+            # Update the end time marker
+            last_event_end_time = max(last_event_end_time, sub_end) # Use max in case of overlapping subs
+
+        # --- Process Gap After Last Subtitle ---
+        # Find the end time of the very last processed chunk
+        last_chunk_end_time = chunk_metadata_list[-1]['chunk_end_time_sec'] if chunk_metadata_list else 0.0
+
+        if last_chunk_end_time > last_event_end_time + epsilon:
+            gap_start = last_event_end_time
+            gap_end = last_chunk_end_time
+            corresponding_chunks_final_gap = find_overlapping_chunks(gap_start, gap_end)
+            if corresponding_chunks_final_gap:
+                final_metadata_structure.append({
+                    "text": "",
+                    "text_start_time_sec": round(gap_start, 3),
+                    "text_end_time_sec": round(gap_end, 3),
+                    "corresponding_chunks": corresponding_chunks_final_gap
+                })
+
+        print(f"Assembled metadata for {len(final_metadata_structure)} segments (including gaps).")
+
+
+    # Step 4: Save Final Metadata Structure to JSON
+    if final_metadata_structure:
+        metadata_path = video_base_out_dir / "metadata_text_centric_with_gaps.json" # New filename
         try:
             with open(metadata_path, 'w', encoding='utf-8') as f:
-                json.dump(video_metadata, f, indent=4, ensure_ascii=False)
-            print(f"Metadata saved to: {metadata_path}")
+                json.dump(final_metadata_structure, f, indent=4, ensure_ascii=False)
+            print(f"Full coverage text-centric metadata saved to: {metadata_path}")
         except Exception as e:
-            print(f"Error saving metadata to {metadata_path}: {e}")
+            print(f"Error saving full coverage metadata to {metadata_path}: {e}")
     else:
-        print(f"No metadata generated for {video_path.name} (perhaps no frames or processing error).")
+        print(f"No text-centric metadata generated for {video_path.name}.")
 
     print(f"--- Finished {video_path.name} ---")
 
