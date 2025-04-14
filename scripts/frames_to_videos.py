@@ -64,7 +64,7 @@ def play_comparison(
     video_output_dir = base_dir / video_name
 
     # --- 1. Load Metadata ---
-    metadata_path = video_output_dir / "metadata_text_centric_with_gaps.json"
+    metadata_path = video_output_dir / "metadata.json"
     metadata_segments = [] # List of text/gap segments
     chunk_times = {} # Map: saved_chunk_filename -> (start_time, end_time)
 

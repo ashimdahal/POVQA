@@ -503,7 +503,7 @@ def process_single_video(video_path, base_output_dir, num_frames, skip_frames,
 
     # Step 4: Save Final Metadata Structure to JSON
     if final_metadata_structure:
-        metadata_path = video_base_out_dir / "metadata_text_centric_with_gaps.json" # New filename
+        metadata_path = video_base_out_dir / "metadata.json" # New filename
         try:
             with open(metadata_path, 'w', encoding='utf-8') as f:
                 json.dump(final_metadata_structure, f, indent=4, ensure_ascii=False)
