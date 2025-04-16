@@ -1,5 +1,7 @@
 import torch
+
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from pathlib import Path
 
 from headinfer.cache import OffloadedCache
 from headinfer.mp import mp_headinfer, mp_simulate_decode
@@ -12,9 +14,10 @@ model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloa
 # headinfer_model = HeadInferModel(model)
 
 # Generate text with long context
-input_text = "Once upon a time in a galaxy far, far away..."
+current_dir = Path(__file__).parent
+input_text = open(current_dir / "alice.txt").read()
 input_ids = tokenizer(input_text, return_tensors="pt").input_ids.to("cuda")
-
+print(len(input_ids[0]))
 
 with torch.inference_mode():
 
