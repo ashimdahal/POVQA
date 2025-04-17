@@ -1,3 +1,4 @@
 /input_videos/
 /processed_videos/
 /input_data/
+*/__pycache__/
