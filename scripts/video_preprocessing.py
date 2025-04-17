@@ -130,6 +130,77 @@ def extract_subtitles_if_present(video_path, out_subtitle_path):
         print(f"An unexpected error occurred during subtitle extraction: {e}")
         return False
 
+# Assumes 'WHISPER_AVAILABLE' flag and 'whisper' library are imported/checked
+# Assumes 'os', 'datetime', 'warnings' are imported
+
+def generate_srt_from_audio(audio_path_str, srt_path_str, model_name="base"):
+    """
+    Generates SRT subtitles directly from an AUDIO file using Whisper.
+    Returns True on success, False on failure. Requires Whisper.
+    """
+    if not WHISPER_AVAILABLE:
+        print("Cannot generate subtitles: Whisper library not available.")
+        return False
+
+    print(f"\nAttempting to generate subtitles using Whisper for AUDIO: {audio_path_str}")
+    print(f"Using Whisper model: {model_name}")
+
+    # Ensure audio file exists
+    if not os.path.exists(audio_path_str):
+        print(f"Error: Audio file not found at {audio_path_str}")
+        return False
+
+    # Ensure output directory exists
+    output_dir = os.path.dirname(srt_path_str)
+    os.makedirs(output_dir, exist_ok=True)
+
+    # --- 1. Load Whisper Model ---
+    try:
+        print("Loading Whisper model...")
+        # Consider adding download_root parameter if needed:
+        # model = whisper.load_model(model_name, download_root="/path/to/models")
+        model = whisper.load_model(model_name)
+        print("Whisper model loaded.")
+    except Exception as e:
+        print(f"Error loading Whisper model '{model_name}': {e}")
+        return False
+
+    # --- 2. Transcribe Audio & Format SRT ---
+    transcription_successful = False
+    try:
+        print(f"Transcribing audio file: {audio_path_str}...")
+        # Set fp16=False if you don't have a CUDA-enabled GPU or run into issues
+        # You might want to check for CUDA availability here for robustness
+        # import torch
+        # use_fp16 = torch.cuda.is_available()
+        use_fp16 = True # Defaulting to True, adjust as needed
+        print(f"Using fp16: {use_fp16}")
+
+        result = model.transcribe(audio_path_str, verbose=False, word_timestamps=True, fp16=use_fp16)
+        print("Transcription complete.")
+
+        print("Formatting SRT...")
+        # Using whisper's built-in SRT writer logic
+        from whisper.utils import WriteSRT
+        writer = WriteSRT(output_dir) # Specify output dir for the writer
+        # The options dict can control max line width, max line count etc.
+        writer_options = {
+            'max_line_width': None,
+            'max_line_count': None,
+            'highlight_words': False # Set to True to wrap words with *...* (requires word_timestamps=True)
+        }
+        writer(result, srt_path_str, writer_options) # Write result to the specific file path
+
+        print(f"SRT file generated successfully: {srt_path_str}")
+        transcription_successful = True
+
+    except Exception as e:
+        print(f"Error during transcription or SRT formatting: {e}")
+        transcription_successful = False
+    # No temporary audio file cleanup needed here
+
+    return transcription_successful
+
 def generate_srt_with_whisper(video_path_str, srt_path_str, model_name="base"):
     """
     Generates an SRT subtitle file from a video file using OpenAI's Whisper.
