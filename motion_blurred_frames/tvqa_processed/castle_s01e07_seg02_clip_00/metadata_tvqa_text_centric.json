@@ -1,0 +1,1315 @@
+[
+    {
+        "text": "",
+        "text_start_time_sec": 0.0,
+        "text_end_time_sec": 8.005,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00001-source_frame00003",
+                "saved_chunk_filename": "frame00001.jpg",
+                "chunk_start_time_sec": 0.0,
+                "chunk_end_time_sec": 1.0
+            },
+            {
+                "image_file_range": "source_frame00004-source_frame00006",
+                "saved_chunk_filename": "frame00002.jpg",
+                "chunk_start_time_sec": 1.0,
+                "chunk_end_time_sec": 2.0
+            },
+            {
+                "image_file_range": "source_frame00007-source_frame00009",
+                "saved_chunk_filename": "frame00003.jpg",
+                "chunk_start_time_sec": 2.0,
+                "chunk_end_time_sec": 3.0
+            },
+            {
+                "image_file_range": "source_frame00010-source_frame00012",
+                "saved_chunk_filename": "frame00004.jpg",
+                "chunk_start_time_sec": 3.0,
+                "chunk_end_time_sec": 4.0
+            },
+            {
+                "image_file_range": "source_frame00013-source_frame00015",
+                "saved_chunk_filename": "frame00005.jpg",
+                "chunk_start_time_sec": 4.0,
+                "chunk_end_time_sec": 5.0
+            },
+            {
+                "image_file_range": "source_frame00016-source_frame00018",
+                "saved_chunk_filename": "frame00006.jpg",
+                "chunk_start_time_sec": 5.0,
+                "chunk_end_time_sec": 6.0
+            },
+            {
+                "image_file_range": "source_frame00019-source_frame00021",
+                "saved_chunk_filename": "frame00007.jpg",
+                "chunk_start_time_sec": 6.0,
+                "chunk_end_time_sec": 7.0
+            },
+            {
+                "image_file_range": "source_frame00022-source_frame00024",
+                "saved_chunk_filename": "frame00008.jpg",
+                "chunk_start_time_sec": 7.0,
+                "chunk_end_time_sec": 8.0
+            },
+            {
+                "image_file_range": "source_frame00025-source_frame00027",
+                "saved_chunk_filename": "frame00009.jpg",
+                "chunk_start_time_sec": 8.0,
+                "chunk_end_time_sec": 9.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle:)You've come to Nottingham once too often.",
+        "text_start_time_sec": 8.005,
+        "text_end_time_sec": 9.868,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00025-source_frame00027",
+                "saved_chunk_filename": "frame00009.jpg",
+                "chunk_start_time_sec": 8.0,
+                "chunk_end_time_sec": 9.0
+            },
+            {
+                "image_file_range": "source_frame00028-source_frame00030",
+                "saved_chunk_filename": "frame00010.jpg",
+                "chunk_start_time_sec": 9.0,
+                "chunk_end_time_sec": 10.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 9.868,
+        "text_end_time_sec": 9.905,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00028-source_frame00030",
+                "saved_chunk_filename": "frame00010.jpg",
+                "chunk_start_time_sec": 9.0,
+                "chunk_end_time_sec": 10.0
+            }
+        ]
+    },
+    {
+        "text": "(Alexis:)After today, there'll be no need for me to come again!",
+        "text_start_time_sec": 9.905,
+        "text_end_time_sec": 11.77,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00028-source_frame00030",
+                "saved_chunk_filename": "frame00010.jpg",
+                "chunk_start_time_sec": 9.0,
+                "chunk_end_time_sec": 10.0
+            },
+            {
+                "image_file_range": "source_frame00031-source_frame00033",
+                "saved_chunk_filename": "frame00011.jpg",
+                "chunk_start_time_sec": 10.0,
+                "chunk_end_time_sec": 11.0
+            },
+            {
+                "image_file_range": "source_frame00034-source_frame00036",
+                "saved_chunk_filename": "frame00012.jpg",
+                "chunk_start_time_sec": 11.0,
+                "chunk_end_time_sec": 12.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 11.77,
+        "text_end_time_sec": 11.807,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00034-source_frame00036",
+                "saved_chunk_filename": "frame00012.jpg",
+                "chunk_start_time_sec": 11.0,
+                "chunk_end_time_sec": 12.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle:)You've been holding out on me, Sir Robin. I hear you like a boy.",
+        "text_start_time_sec": 11.807,
+        "text_end_time_sec": 14.605,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00034-source_frame00036",
+                "saved_chunk_filename": "frame00012.jpg",
+                "chunk_start_time_sec": 11.0,
+                "chunk_end_time_sec": 12.0
+            },
+            {
+                "image_file_range": "source_frame00037-source_frame00039",
+                "saved_chunk_filename": "frame00013.jpg",
+                "chunk_start_time_sec": 12.0,
+                "chunk_end_time_sec": 13.0
+            },
+            {
+                "image_file_range": "source_frame00040-source_frame00042",
+                "saved_chunk_filename": "frame00014.jpg",
+                "chunk_start_time_sec": 13.0,
+                "chunk_end_time_sec": 14.0
+            },
+            {
+                "image_file_range": "source_frame00043-source_frame00045",
+                "saved_chunk_filename": "frame00015.jpg",
+                "chunk_start_time_sec": 14.0,
+                "chunk_end_time_sec": 15.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 14.605,
+        "text_end_time_sec": 14.643,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00043-source_frame00045",
+                "saved_chunk_filename": "frame00015.jpg",
+                "chunk_start_time_sec": 14.0,
+                "chunk_end_time_sec": 15.0
+            }
+        ]
+    },
+    {
+        "text": "(Alexis:)I knew she'd tell. So, who is he?",
+        "text_start_time_sec": 14.643,
+        "text_end_time_sec": 16.837,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00043-source_frame00045",
+                "saved_chunk_filename": "frame00015.jpg",
+                "chunk_start_time_sec": 14.0,
+                "chunk_end_time_sec": 15.0
+            },
+            {
+                "image_file_range": "source_frame00046-source_frame00048",
+                "saved_chunk_filename": "frame00016.jpg",
+                "chunk_start_time_sec": 15.0,
+                "chunk_end_time_sec": 16.0
+            },
+            {
+                "image_file_range": "source_frame00049-source_frame00051",
+                "saved_chunk_filename": "frame00017.jpg",
+                "chunk_start_time_sec": 16.0,
+                "chunk_end_time_sec": 17.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 16.837,
+        "text_end_time_sec": 16.877,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00049-source_frame00051",
+                "saved_chunk_filename": "frame00017.jpg",
+                "chunk_start_time_sec": 16.0,
+                "chunk_end_time_sec": 17.0
+            }
+        ]
+    },
+    {
+        "text": "(Alexis:)His name is Owen. He's in my poetry class.",
+        "text_start_time_sec": 16.877,
+        "text_end_time_sec": 19.31,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00049-source_frame00051",
+                "saved_chunk_filename": "frame00017.jpg",
+                "chunk_start_time_sec": 16.0,
+                "chunk_end_time_sec": 17.0
+            },
+            {
+                "image_file_range": "source_frame00052-source_frame00054",
+                "saved_chunk_filename": "frame00018.jpg",
+                "chunk_start_time_sec": 17.0,
+                "chunk_end_time_sec": 18.0
+            },
+            {
+                "image_file_range": "source_frame00055-source_frame00057",
+                "saved_chunk_filename": "frame00019.jpg",
+                "chunk_start_time_sec": 18.0,
+                "chunk_end_time_sec": 19.0
+            },
+            {
+                "image_file_range": "source_frame00058-source_frame00060",
+                "saved_chunk_filename": "frame00020.jpg",
+                "chunk_start_time_sec": 19.0,
+                "chunk_end_time_sec": 20.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 19.31,
+        "text_end_time_sec": 19.346,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00058-source_frame00060",
+                "saved_chunk_filename": "frame00020.jpg",
+                "chunk_start_time_sec": 19.0,
+                "chunk_end_time_sec": 20.0
+            }
+        ]
+    },
+    {
+        "text": "Very shy and very sweet. Hey!",
+        "text_start_time_sec": 19.346,
+        "text_end_time_sec": 22.439,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00058-source_frame00060",
+                "saved_chunk_filename": "frame00020.jpg",
+                "chunk_start_time_sec": 19.0,
+                "chunk_end_time_sec": 20.0
+            },
+            {
+                "image_file_range": "source_frame00061-source_frame00063",
+                "saved_chunk_filename": "frame00021.jpg",
+                "chunk_start_time_sec": 20.0,
+                "chunk_end_time_sec": 21.0
+            },
+            {
+                "image_file_range": "source_frame00064-source_frame00066",
+                "saved_chunk_filename": "frame00022.jpg",
+                "chunk_start_time_sec": 21.0,
+                "chunk_end_time_sec": 22.0
+            },
+            {
+                "image_file_range": "source_frame00067-source_frame00069",
+                "saved_chunk_filename": "frame00023.jpg",
+                "chunk_start_time_sec": 22.0,
+                "chunk_end_time_sec": 23.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 22.439,
+        "text_end_time_sec": 23.148,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00067-source_frame00069",
+                "saved_chunk_filename": "frame00023.jpg",
+                "chunk_start_time_sec": 22.0,
+                "chunk_end_time_sec": 23.0
+            },
+            {
+                "image_file_range": "source_frame00070-source_frame00072",
+                "saved_chunk_filename": "frame00024.jpg",
+                "chunk_start_time_sec": 23.0,
+                "chunk_end_time_sec": 24.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle:)- Keep your guard up. - Then don't distract me.",
+        "text_start_time_sec": 23.148,
+        "text_end_time_sec": 25.173,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00070-source_frame00072",
+                "saved_chunk_filename": "frame00024.jpg",
+                "chunk_start_time_sec": 23.0,
+                "chunk_end_time_sec": 24.0
+            },
+            {
+                "image_file_range": "source_frame00073-source_frame00075",
+                "saved_chunk_filename": "frame00025.jpg",
+                "chunk_start_time_sec": 24.0,
+                "chunk_end_time_sec": 25.0
+            },
+            {
+                "image_file_range": "source_frame00076-source_frame00078",
+                "saved_chunk_filename": "frame00026.jpg",
+                "chunk_start_time_sec": 25.0,
+                "chunk_end_time_sec": 26.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 25.173,
+        "text_end_time_sec": 25.216,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00076-source_frame00078",
+                "saved_chunk_filename": "frame00026.jpg",
+                "chunk_start_time_sec": 25.0,
+                "chunk_end_time_sec": 26.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle:)Does he know how you feel about him?",
+        "text_start_time_sec": 25.216,
+        "text_end_time_sec": 26.41,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00076-source_frame00078",
+                "saved_chunk_filename": "frame00026.jpg",
+                "chunk_start_time_sec": 25.0,
+                "chunk_end_time_sec": 26.0
+            },
+            {
+                "image_file_range": "source_frame00079-source_frame00081",
+                "saved_chunk_filename": "frame00027.jpg",
+                "chunk_start_time_sec": 26.0,
+                "chunk_end_time_sec": 27.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 26.41,
+        "text_end_time_sec": 26.451,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00079-source_frame00081",
+                "saved_chunk_filename": "frame00027.jpg",
+                "chunk_start_time_sec": 26.0,
+                "chunk_end_time_sec": 27.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle:)- No. - Why not?",
+        "text_start_time_sec": 26.451,
+        "text_end_time_sec": 28.509,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00079-source_frame00081",
+                "saved_chunk_filename": "frame00027.jpg",
+                "chunk_start_time_sec": 26.0,
+                "chunk_end_time_sec": 27.0
+            },
+            {
+                "image_file_range": "source_frame00082-source_frame00084",
+                "saved_chunk_filename": "frame00028.jpg",
+                "chunk_start_time_sec": 27.0,
+                "chunk_end_time_sec": 28.0
+            },
+            {
+                "image_file_range": "source_frame00085-source_frame00087",
+                "saved_chunk_filename": "frame00029.jpg",
+                "chunk_start_time_sec": 28.0,
+                "chunk_end_time_sec": 29.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 28.509,
+        "text_end_time_sec": 28.552,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00085-source_frame00087",
+                "saved_chunk_filename": "frame00029.jpg",
+                "chunk_start_time_sec": 28.0,
+                "chunk_end_time_sec": 29.0
+            }
+        ]
+    },
+    {
+        "text": "Hey!",
+        "text_start_time_sec": 28.552,
+        "text_end_time_sec": 30.179,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00085-source_frame00087",
+                "saved_chunk_filename": "frame00029.jpg",
+                "chunk_start_time_sec": 28.0,
+                "chunk_end_time_sec": 29.0
+            },
+            {
+                "image_file_range": "source_frame00088-source_frame00090",
+                "saved_chunk_filename": "frame00030.jpg",
+                "chunk_start_time_sec": 29.0,
+                "chunk_end_time_sec": 30.0
+            },
+            {
+                "image_file_range": "source_frame00091-source_frame00093",
+                "saved_chunk_filename": "frame00031.jpg",
+                "chunk_start_time_sec": 30.0,
+                "chunk_end_time_sec": 31.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 30.179,
+        "text_end_time_sec": 31.254,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00091-source_frame00093",
+                "saved_chunk_filename": "frame00031.jpg",
+                "chunk_start_time_sec": 30.0,
+                "chunk_end_time_sec": 31.0
+            },
+            {
+                "image_file_range": "source_frame00094-source_frame00096",
+                "saved_chunk_filename": "frame00032.jpg",
+                "chunk_start_time_sec": 31.0,
+                "chunk_end_time_sec": 32.0
+            }
+        ]
+    },
+    {
+        "text": "(Alexis:)Because I don't even know how I feel about him.",
+        "text_start_time_sec": 31.254,
+        "text_end_time_sec": 33.948,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00094-source_frame00096",
+                "saved_chunk_filename": "frame00032.jpg",
+                "chunk_start_time_sec": 31.0,
+                "chunk_end_time_sec": 32.0
+            },
+            {
+                "image_file_range": "source_frame00097-source_frame00099",
+                "saved_chunk_filename": "frame00033.jpg",
+                "chunk_start_time_sec": 32.0,
+                "chunk_end_time_sec": 33.0
+            },
+            {
+                "image_file_range": "source_frame00100-source_frame00102",
+                "saved_chunk_filename": "frame00034.jpg",
+                "chunk_start_time_sec": 33.0,
+                "chunk_end_time_sec": 34.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 33.948,
+        "text_end_time_sec": 33.988,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00100-source_frame00102",
+                "saved_chunk_filename": "frame00034.jpg",
+                "chunk_start_time_sec": 33.0,
+                "chunk_end_time_sec": 34.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle:)Yes! Very nice!",
+        "text_start_time_sec": 33.988,
+        "text_end_time_sec": 36.252,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00100-source_frame00102",
+                "saved_chunk_filename": "frame00034.jpg",
+                "chunk_start_time_sec": 33.0,
+                "chunk_end_time_sec": 34.0
+            },
+            {
+                "image_file_range": "source_frame00103-source_frame00105",
+                "saved_chunk_filename": "frame00035.jpg",
+                "chunk_start_time_sec": 34.0,
+                "chunk_end_time_sec": 35.0
+            },
+            {
+                "image_file_range": "source_frame00106-source_frame00108",
+                "saved_chunk_filename": "frame00036.jpg",
+                "chunk_start_time_sec": 35.0,
+                "chunk_end_time_sec": 36.0
+            },
+            {
+                "image_file_range": "source_frame00109-source_frame00111",
+                "saved_chunk_filename": "frame00037.jpg",
+                "chunk_start_time_sec": 36.0,
+                "chunk_end_time_sec": 37.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 36.252,
+        "text_end_time_sec": 42.028,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00109-source_frame00111",
+                "saved_chunk_filename": "frame00037.jpg",
+                "chunk_start_time_sec": 36.0,
+                "chunk_end_time_sec": 37.0
+            },
+            {
+                "image_file_range": "source_frame00112-source_frame00114",
+                "saved_chunk_filename": "frame00038.jpg",
+                "chunk_start_time_sec": 37.0,
+                "chunk_end_time_sec": 38.0
+            },
+            {
+                "image_file_range": "source_frame00115-source_frame00117",
+                "saved_chunk_filename": "frame00039.jpg",
+                "chunk_start_time_sec": 38.0,
+                "chunk_end_time_sec": 39.0
+            },
+            {
+                "image_file_range": "source_frame00118-source_frame00120",
+                "saved_chunk_filename": "frame00040.jpg",
+                "chunk_start_time_sec": 39.0,
+                "chunk_end_time_sec": 40.0
+            },
+            {
+                "image_file_range": "source_frame00121-source_frame00123",
+                "saved_chunk_filename": "frame00041.jpg",
+                "chunk_start_time_sec": 40.0,
+                "chunk_end_time_sec": 41.0
+            },
+            {
+                "image_file_range": "source_frame00124-source_frame00126",
+                "saved_chunk_filename": "frame00042.jpg",
+                "chunk_start_time_sec": 41.0,
+                "chunk_end_time_sec": 42.0
+            },
+            {
+                "image_file_range": "source_frame00127-source_frame00129",
+                "saved_chunk_filename": "frame00043.jpg",
+                "chunk_start_time_sec": 42.0,
+                "chunk_end_time_sec": 43.0
+            }
+        ]
+    },
+    {
+        "text": "Hello?",
+        "text_start_time_sec": 42.028,
+        "text_end_time_sec": 43.256,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00127-source_frame00129",
+                "saved_chunk_filename": "frame00043.jpg",
+                "chunk_start_time_sec": 42.0,
+                "chunk_end_time_sec": 43.0
+            },
+            {
+                "image_file_range": "source_frame00130-source_frame00132",
+                "saved_chunk_filename": "frame00044.jpg",
+                "chunk_start_time_sec": 43.0,
+                "chunk_end_time_sec": 44.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 43.256,
+        "text_end_time_sec": 44.897,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00130-source_frame00132",
+                "saved_chunk_filename": "frame00044.jpg",
+                "chunk_start_time_sec": 43.0,
+                "chunk_end_time_sec": 44.0
+            },
+            {
+                "image_file_range": "source_frame00133-source_frame00135",
+                "saved_chunk_filename": "frame00045.jpg",
+                "chunk_start_time_sec": 44.0,
+                "chunk_end_time_sec": 45.0
+            }
+        ]
+    },
+    {
+        "text": "(Ryan:)How many bones did they have to break to get her in there?",
+        "text_start_time_sec": 44.897,
+        "text_end_time_sec": 47.421,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00133-source_frame00135",
+                "saved_chunk_filename": "frame00045.jpg",
+                "chunk_start_time_sec": 44.0,
+                "chunk_end_time_sec": 45.0
+            },
+            {
+                "image_file_range": "source_frame00136-source_frame00138",
+                "saved_chunk_filename": "frame00046.jpg",
+                "chunk_start_time_sec": 45.0,
+                "chunk_end_time_sec": 46.0
+            },
+            {
+                "image_file_range": "source_frame00139-source_frame00141",
+                "saved_chunk_filename": "frame00047.jpg",
+                "chunk_start_time_sec": 46.0,
+                "chunk_end_time_sec": 47.0
+            },
+            {
+                "image_file_range": "source_frame00142-source_frame00144",
+                "saved_chunk_filename": "frame00048.jpg",
+                "chunk_start_time_sec": 47.0,
+                "chunk_end_time_sec": 48.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 47.421,
+        "text_end_time_sec": 47.466,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00142-source_frame00144",
+                "saved_chunk_filename": "frame00048.jpg",
+                "chunk_start_time_sec": 47.0,
+                "chunk_end_time_sec": 48.0
+            }
+        ]
+    },
+    {
+        "text": "(Lanie:)Won't know till I get her back to the lab.",
+        "text_start_time_sec": 47.466,
+        "text_end_time_sec": 49.763,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00142-source_frame00144",
+                "saved_chunk_filename": "frame00048.jpg",
+                "chunk_start_time_sec": 47.0,
+                "chunk_end_time_sec": 48.0
+            },
+            {
+                "image_file_range": "source_frame00145-source_frame00147",
+                "saved_chunk_filename": "frame00049.jpg",
+                "chunk_start_time_sec": 48.0,
+                "chunk_end_time_sec": 49.0
+            },
+            {
+                "image_file_range": "source_frame00148-source_frame00150",
+                "saved_chunk_filename": "frame00050.jpg",
+                "chunk_start_time_sec": 49.0,
+                "chunk_end_time_sec": 50.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 49.763,
+        "text_end_time_sec": 51.702,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00148-source_frame00150",
+                "saved_chunk_filename": "frame00050.jpg",
+                "chunk_start_time_sec": 49.0,
+                "chunk_end_time_sec": 50.0
+            },
+            {
+                "image_file_range": "source_frame00151-source_frame00153",
+                "saved_chunk_filename": "frame00051.jpg",
+                "chunk_start_time_sec": 50.0,
+                "chunk_end_time_sec": 51.0
+            },
+            {
+                "image_file_range": "source_frame00154-source_frame00156",
+                "saved_chunk_filename": "frame00052.jpg",
+                "chunk_start_time_sec": 51.0,
+                "chunk_end_time_sec": 52.0
+            }
+        ]
+    },
+    {
+        "text": "(Lanie (cont'd):)Don't contaminate my crime scene.",
+        "text_start_time_sec": 51.702,
+        "text_end_time_sec": 53.532,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00154-source_frame00156",
+                "saved_chunk_filename": "frame00052.jpg",
+                "chunk_start_time_sec": 51.0,
+                "chunk_end_time_sec": 52.0
+            },
+            {
+                "image_file_range": "source_frame00157-source_frame00159",
+                "saved_chunk_filename": "frame00053.jpg",
+                "chunk_start_time_sec": 52.0,
+                "chunk_end_time_sec": 53.0
+            },
+            {
+                "image_file_range": "source_frame00160-source_frame00162",
+                "saved_chunk_filename": "frame00054.jpg",
+                "chunk_start_time_sec": 53.0,
+                "chunk_end_time_sec": 54.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 53.532,
+        "text_end_time_sec": 53.57,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00160-source_frame00162",
+                "saved_chunk_filename": "frame00054.jpg",
+                "chunk_start_time_sec": 53.0,
+                "chunk_end_time_sec": 54.0
+            }
+        ]
+    },
+    {
+        "text": "(Ryan:)- Sorry, it must be the feathers. Beckett's here.",
+        "text_start_time_sec": 53.57,
+        "text_end_time_sec": 56.471,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00160-source_frame00162",
+                "saved_chunk_filename": "frame00054.jpg",
+                "chunk_start_time_sec": 53.0,
+                "chunk_end_time_sec": 54.0
+            },
+            {
+                "image_file_range": "source_frame00163-source_frame00165",
+                "saved_chunk_filename": "frame00055.jpg",
+                "chunk_start_time_sec": 54.0,
+                "chunk_end_time_sec": 55.0
+            },
+            {
+                "image_file_range": "source_frame00166-source_frame00168",
+                "saved_chunk_filename": "frame00056.jpg",
+                "chunk_start_time_sec": 55.0,
+                "chunk_end_time_sec": 56.0
+            },
+            {
+                "image_file_range": "source_frame00169-source_frame00171",
+                "saved_chunk_filename": "frame00057.jpg",
+                "chunk_start_time_sec": 56.0,
+                "chunk_end_time_sec": 57.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 56.471,
+        "text_end_time_sec": 61.442,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00169-source_frame00171",
+                "saved_chunk_filename": "frame00057.jpg",
+                "chunk_start_time_sec": 56.0,
+                "chunk_end_time_sec": 57.0
+            },
+            {
+                "image_file_range": "source_frame00172-source_frame00174",
+                "saved_chunk_filename": "frame00058.jpg",
+                "chunk_start_time_sec": 57.0,
+                "chunk_end_time_sec": 58.0
+            },
+            {
+                "image_file_range": "source_frame00175-source_frame00177",
+                "saved_chunk_filename": "frame00059.jpg",
+                "chunk_start_time_sec": 58.0,
+                "chunk_end_time_sec": 59.0
+            },
+            {
+                "image_file_range": "source_frame00178-source_frame00180",
+                "saved_chunk_filename": "frame00060.jpg",
+                "chunk_start_time_sec": 59.0,
+                "chunk_end_time_sec": 60.0
+            },
+            {
+                "image_file_range": "source_frame00181-source_frame00183",
+                "saved_chunk_filename": "frame00061.jpg",
+                "chunk_start_time_sec": 60.0,
+                "chunk_end_time_sec": 61.0
+            },
+            {
+                "image_file_range": "source_frame00184-source_frame00186",
+                "saved_chunk_filename": "frame00062.jpg",
+                "chunk_start_time_sec": 61.0,
+                "chunk_end_time_sec": 62.0
+            }
+        ]
+    },
+    {
+        "text": "(Ryan:)No sign of forced entry, the same as the others.",
+        "text_start_time_sec": 61.442,
+        "text_end_time_sec": 64.569,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00184-source_frame00186",
+                "saved_chunk_filename": "frame00062.jpg",
+                "chunk_start_time_sec": 61.0,
+                "chunk_end_time_sec": 62.0
+            },
+            {
+                "image_file_range": "source_frame00187-source_frame00189",
+                "saved_chunk_filename": "frame00063.jpg",
+                "chunk_start_time_sec": 62.0,
+                "chunk_end_time_sec": 63.0
+            },
+            {
+                "image_file_range": "source_frame00190-source_frame00192",
+                "saved_chunk_filename": "frame00064.jpg",
+                "chunk_start_time_sec": 63.0,
+                "chunk_end_time_sec": 64.0
+            },
+            {
+                "image_file_range": "source_frame00193-source_frame00195",
+                "saved_chunk_filename": "frame00065.jpg",
+                "chunk_start_time_sec": 64.0,
+                "chunk_end_time_sec": 65.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 64.569,
+        "text_end_time_sec": 64.611,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00193-source_frame00195",
+                "saved_chunk_filename": "frame00065.jpg",
+                "chunk_start_time_sec": 64.0,
+                "chunk_end_time_sec": 65.0
+            }
+        ]
+    },
+    {
+        "text": "(Beckett:)Looks like our home invasion crew went for a four-peat.",
+        "text_start_time_sec": 64.611,
+        "text_end_time_sec": 66.578,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00193-source_frame00195",
+                "saved_chunk_filename": "frame00065.jpg",
+                "chunk_start_time_sec": 64.0,
+                "chunk_end_time_sec": 65.0
+            },
+            {
+                "image_file_range": "source_frame00196-source_frame00198",
+                "saved_chunk_filename": "frame00066.jpg",
+                "chunk_start_time_sec": 65.0,
+                "chunk_end_time_sec": 66.0
+            },
+            {
+                "image_file_range": "source_frame00199-source_frame00201",
+                "saved_chunk_filename": "frame00067.jpg",
+                "chunk_start_time_sec": 66.0,
+                "chunk_end_time_sec": 67.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 66.578,
+        "text_end_time_sec": 66.612,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00199-source_frame00201",
+                "saved_chunk_filename": "frame00067.jpg",
+                "chunk_start_time_sec": 66.0,
+                "chunk_end_time_sec": 67.0
+            }
+        ]
+    },
+    {
+        "text": "(Ryan:)They're stepping up their game, becoming more violent.",
+        "text_start_time_sec": 66.612,
+        "text_end_time_sec": 68.341,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00199-source_frame00201",
+                "saved_chunk_filename": "frame00067.jpg",
+                "chunk_start_time_sec": 66.0,
+                "chunk_end_time_sec": 67.0
+            },
+            {
+                "image_file_range": "source_frame00202-source_frame00204",
+                "saved_chunk_filename": "frame00068.jpg",
+                "chunk_start_time_sec": 67.0,
+                "chunk_end_time_sec": 68.0
+            },
+            {
+                "image_file_range": "source_frame00205-source_frame00207",
+                "saved_chunk_filename": "frame00069.jpg",
+                "chunk_start_time_sec": 68.0,
+                "chunk_end_time_sec": 69.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 68.341,
+        "text_end_time_sec": 69.482,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00205-source_frame00207",
+                "saved_chunk_filename": "frame00069.jpg",
+                "chunk_start_time_sec": 68.0,
+                "chunk_end_time_sec": 69.0
+            },
+            {
+                "image_file_range": "source_frame00208-source_frame00210",
+                "saved_chunk_filename": "frame00070.jpg",
+                "chunk_start_time_sec": 69.0,
+                "chunk_end_time_sec": 70.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle/beckett:)- Bless you. - Bless you. Jinx.",
+        "text_start_time_sec": 69.482,
+        "text_end_time_sec": 70.971,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00208-source_frame00210",
+                "saved_chunk_filename": "frame00070.jpg",
+                "chunk_start_time_sec": 69.0,
+                "chunk_end_time_sec": 70.0
+            },
+            {
+                "image_file_range": "source_frame00211-source_frame00213",
+                "saved_chunk_filename": "frame00071.jpg",
+                "chunk_start_time_sec": 70.0,
+                "chunk_end_time_sec": 71.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 70.971,
+        "text_end_time_sec": 71.015,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00211-source_frame00213",
+                "saved_chunk_filename": "frame00071.jpg",
+                "chunk_start_time_sec": 70.0,
+                "chunk_end_time_sec": 71.0
+            },
+            {
+                "image_file_range": "source_frame00214-source_frame00216",
+                "saved_chunk_filename": "frame00072.jpg",
+                "chunk_start_time_sec": 71.0,
+                "chunk_end_time_sec": 72.0
+            }
+        ]
+    },
+    {
+        "text": "(Beckett (re:)- What's wrong with him? - Goose down. He's allergic.",
+        "text_start_time_sec": 71.015,
+        "text_end_time_sec": 73.176,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00214-source_frame00216",
+                "saved_chunk_filename": "frame00072.jpg",
+                "chunk_start_time_sec": 71.0,
+                "chunk_end_time_sec": 72.0
+            },
+            {
+                "image_file_range": "source_frame00217-source_frame00219",
+                "saved_chunk_filename": "frame00073.jpg",
+                "chunk_start_time_sec": 72.0,
+                "chunk_end_time_sec": 73.0
+            },
+            {
+                "image_file_range": "source_frame00220-source_frame00222",
+                "saved_chunk_filename": "frame00074.jpg",
+                "chunk_start_time_sec": 73.0,
+                "chunk_end_time_sec": 74.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 73.176,
+        "text_end_time_sec": 73.218,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00220-source_frame00222",
+                "saved_chunk_filename": "frame00074.jpg",
+                "chunk_start_time_sec": 73.0,
+                "chunk_end_time_sec": 74.0
+            }
+        ]
+    },
+    {
+        "text": "(Anne:)I'm sorry. Under the time-honored rules of jinx,",
+        "text_start_time_sec": 73.218,
+        "text_end_time_sec": 75.242,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00220-source_frame00222",
+                "saved_chunk_filename": "frame00074.jpg",
+                "chunk_start_time_sec": 73.0,
+                "chunk_end_time_sec": 74.0
+            },
+            {
+                "image_file_range": "source_frame00223-source_frame00225",
+                "saved_chunk_filename": "frame00075.jpg",
+                "chunk_start_time_sec": 74.0,
+                "chunk_end_time_sec": 75.0
+            },
+            {
+                "image_file_range": "source_frame00226-source_frame00228",
+                "saved_chunk_filename": "frame00076.jpg",
+                "chunk_start_time_sec": 75.0,
+                "chunk_end_time_sec": 76.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 75.242,
+        "text_end_time_sec": 75.285,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00226-source_frame00228",
+                "saved_chunk_filename": "frame00076.jpg",
+                "chunk_start_time_sec": 75.0,
+                "chunk_end_time_sec": 76.0
+            }
+        ]
+    },
+    {
+        "text": "you're not allowed to speak until I release you.",
+        "text_start_time_sec": 75.285,
+        "text_end_time_sec": 78.219,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00226-source_frame00228",
+                "saved_chunk_filename": "frame00076.jpg",
+                "chunk_start_time_sec": 75.0,
+                "chunk_end_time_sec": 76.0
+            },
+            {
+                "image_file_range": "source_frame00229-source_frame00231",
+                "saved_chunk_filename": "frame00077.jpg",
+                "chunk_start_time_sec": 76.0,
+                "chunk_end_time_sec": 77.0
+            },
+            {
+                "image_file_range": "source_frame00232-source_frame00234",
+                "saved_chunk_filename": "frame00078.jpg",
+                "chunk_start_time_sec": 77.0,
+                "chunk_end_time_sec": 78.0
+            },
+            {
+                "image_file_range": "source_frame00235-source_frame00237",
+                "saved_chunk_filename": "frame00079.jpg",
+                "chunk_start_time_sec": 78.0,
+                "chunk_end_time_sec": 79.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 78.219,
+        "text_end_time_sec": 78.254,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00235-source_frame00237",
+                "saved_chunk_filename": "frame00079.jpg",
+                "chunk_start_time_sec": 78.0,
+                "chunk_end_time_sec": 79.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle/beckett:)- Bless you! - Bless you! Reverse double-jinx.",
+        "text_start_time_sec": 78.254,
+        "text_end_time_sec": 79.983,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00235-source_frame00237",
+                "saved_chunk_filename": "frame00079.jpg",
+                "chunk_start_time_sec": 78.0,
+                "chunk_end_time_sec": 79.0
+            },
+            {
+                "image_file_range": "source_frame00238-source_frame00240",
+                "saved_chunk_filename": "frame00080.jpg",
+                "chunk_start_time_sec": 79.0,
+                "chunk_end_time_sec": 80.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 79.983,
+        "text_end_time_sec": 80.022,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00238-source_frame00240",
+                "saved_chunk_filename": "frame00080.jpg",
+                "chunk_start_time_sec": 79.0,
+                "chunk_end_time_sec": 80.0
+            },
+            {
+                "image_file_range": "source_frame00241-source_frame00243",
+                "saved_chunk_filename": "frame00081.jpg",
+                "chunk_start_time_sec": 80.0,
+                "chunk_end_time_sec": 81.0
+            }
+        ]
+    },
+    {
+        "text": "(Castle:)- I just, I... - Castle, mouth shut until I release you.",
+        "text_start_time_sec": 80.022,
+        "text_end_time_sec": 83.751,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00241-source_frame00243",
+                "saved_chunk_filename": "frame00081.jpg",
+                "chunk_start_time_sec": 80.0,
+                "chunk_end_time_sec": 81.0
+            },
+            {
+                "image_file_range": "source_frame00244-source_frame00246",
+                "saved_chunk_filename": "frame00082.jpg",
+                "chunk_start_time_sec": 81.0,
+                "chunk_end_time_sec": 82.0
+            },
+            {
+                "image_file_range": "source_frame00247-source_frame00249",
+                "saved_chunk_filename": "frame00083.jpg",
+                "chunk_start_time_sec": 82.0,
+                "chunk_end_time_sec": 83.0
+            },
+            {
+                "image_file_range": "source_frame00250-source_frame00252",
+                "saved_chunk_filename": "frame00084.jpg",
+                "chunk_start_time_sec": 83.0,
+                "chunk_end_time_sec": 84.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 83.751,
+        "text_end_time_sec": 83.791,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00250-source_frame00252",
+                "saved_chunk_filename": "frame00084.jpg",
+                "chunk_start_time_sec": 83.0,
+                "chunk_end_time_sec": 84.0
+            }
+        ]
+    },
+    {
+        "text": "Thank you, Ryan. So what do we have?",
+        "text_start_time_sec": 83.791,
+        "text_end_time_sec": 86.76,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00250-source_frame00252",
+                "saved_chunk_filename": "frame00084.jpg",
+                "chunk_start_time_sec": 83.0,
+                "chunk_end_time_sec": 84.0
+            },
+            {
+                "image_file_range": "source_frame00253-source_frame00255",
+                "saved_chunk_filename": "frame00085.jpg",
+                "chunk_start_time_sec": 84.0,
+                "chunk_end_time_sec": 85.0
+            },
+            {
+                "image_file_range": "source_frame00256-source_frame00258",
+                "saved_chunk_filename": "frame00086.jpg",
+                "chunk_start_time_sec": 85.0,
+                "chunk_end_time_sec": 86.0
+            },
+            {
+                "image_file_range": "source_frame00259-source_frame00261",
+                "saved_chunk_filename": "frame00087.jpg",
+                "chunk_start_time_sec": 86.0,
+                "chunk_end_time_sec": 87.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 86.76,
+        "text_end_time_sec": 86.794,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00259-source_frame00261",
+                "saved_chunk_filename": "frame00087.jpg",
+                "chunk_start_time_sec": 86.0,
+                "chunk_end_time_sec": 87.0
+            }
+        ]
+    },
+    {
+        "text": "(Esposito:)That's Joanne Delgado, daughter of Susan Delgado, the victim.",
+        "text_start_time_sec": 86.794,
+        "text_end_time_sec": 89.852,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00259-source_frame00261",
+                "saved_chunk_filename": "frame00087.jpg",
+                "chunk_start_time_sec": 86.0,
+                "chunk_end_time_sec": 87.0
+            },
+            {
+                "image_file_range": "source_frame00262-source_frame00264",
+                "saved_chunk_filename": "frame00088.jpg",
+                "chunk_start_time_sec": 87.0,
+                "chunk_end_time_sec": 88.0
+            },
+            {
+                "image_file_range": "source_frame00265-source_frame00267",
+                "saved_chunk_filename": "frame00089.jpg",
+                "chunk_start_time_sec": 88.0,
+                "chunk_end_time_sec": 89.0
+            },
+            {
+                "image_file_range": "source_frame00268-source_frame00270",
+                "saved_chunk_filename": "frame00090.jpg",
+                "chunk_start_time_sec": 89.0,
+                "chunk_end_time_sec": 90.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 89.852,
+        "text_end_time_sec": 89.895,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00268-source_frame00270",
+                "saved_chunk_filename": "frame00090.jpg",
+                "chunk_start_time_sec": 89.0,
+                "chunk_end_time_sec": 90.0
+            }
+        ]
+    },
+    {
+        "text": "(Esposito:)She called to say good night to her mom,",
+        "text_start_time_sec": 89.895,
+        "text_end_time_sec": 91.328,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00268-source_frame00270",
+                "saved_chunk_filename": "frame00090.jpg",
+                "chunk_start_time_sec": 89.0,
+                "chunk_end_time_sec": 90.0
+            },
+            {
+                "image_file_range": "source_frame00271-source_frame00273",
+                "saved_chunk_filename": "frame00091.jpg",
+                "chunk_start_time_sec": 90.0,
+                "chunk_end_time_sec": 91.0
+            },
+            {
+                "image_file_range": "source_frame00274-source_frame00276",
+                "saved_chunk_filename": "frame00092.jpg",
+                "chunk_start_time_sec": 91.0,
+                "chunk_end_time_sec": 92.0
+            }
+        ]
+    },
+    {
+        "text": "",
+        "text_start_time_sec": 91.328,
+        "text_end_time_sec": 92.0,
+        "corresponding_chunks": [
+            {
+                "image_file_range": "source_frame00274-source_frame00276",
+                "saved_chunk_filename": "frame00092.jpg",
+                "chunk_start_time_sec": 91.0,
+                "chunk_end_time_sec": 92.0
+            }
+        ]
+    }
+]
