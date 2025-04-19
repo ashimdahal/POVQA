@@ -5,17 +5,28 @@ from tqdm import tqdm
 import warnings
 import torch # For device placement
 from PIL import Image # For loading images
+import subprocess # For dependency check
 
 # Attempt to import transformers, handle error if not installed
 try:
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    # Specific processor might be needed, often loaded via AutoTokenizer or separate class
-    # For Qwen-VL, tokenizer often handles text/image processing together
+    from transformers import AutoProcessor, LlavaOnevisionForConditionalGeneration, AutoModelForCausalLM, BitsAndBytesConfig
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
-    print("Warning: `transformers` library not found. Please install it (`pip install transformers torch Pillow`).")
+    print("Warning: `transformers` library or specific LLaVA classes not found.")
+    print("Please install necessary libraries (`pip install transformers torch Pillow timm bitsandbytes accelerate`).")
     print("CoT generation functionality will be disabled.")
     TRANSFORMERS_AVAILABLE = False
+    # Define a dummy class if needed for script structure if skipping generation
+    class LlavaOnevisionForConditionalGeneration: pass
+
+# Attempt to import bitsandbytes for 4-bit loading
+try:
+    import bitsandbytes
+    BITSANDBYTES_AVAILABLE = True
+except ImportError:
+    print("Warning: `bitsandbytes` library not found (`pip install bitsandbytes`). 4-bit quantization will be disabled.")
+    BITSANDBYTES_AVAILABLE = False
+
 
 # Suppress specific warnings (optional)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -27,199 +38,171 @@ def parse_timestamp(ts_str):
     """Parses TVQA timestamp string 'start-end' into float seconds."""
     try:
         start, end = map(float, ts_str.split('-'))
+        # Add basic validation
+        if start >= end or start < 0:
+             print(f"Warning: Invalid timestamp range '{ts_str}'. Start: {start}, End: {end}")
+             return None, None
         return start, end
     except Exception as e:
         print(f"Warning: Could not parse timestamp string '{ts_str}': {e}")
         return None, None
 
 # --- MODIFIED Function ---
-def load_multimodal_model_and_tokenizer(model_name_or_path, device_map="auto"):
-    """Loads Multimodal LLM and Tokenizer using Hugging Face Transformers."""
+def load_multimodal_model_and_processor(model_name_or_path, use_4bit=True, device_map="auto"):
+    """
+    Loads LLaVA-OneVision model (optionally in 4-bit) and its Processor.
+    """
     if not TRANSFORMERS_AVAILABLE:
         raise RuntimeError("Transformers library is not available.")
-    print(f"Loading multimodal model: {model_name_or_path}...")
+    print(f"Loading multimodal model and processor: {model_name_or_path}...")
 
-    # Load tokenizer (Qwen tokenizer often handles multimodal aspects)
-    # trust_remote_code=True is often necessary for models with custom code
-    tokenizer = AutoTokenizer.from_pretrained(model_name_or_path, trust_remote_code=True)
-
-    # Load model
-    # For large models, device_map='auto' is crucial for multi-GPU or CPU offloading
-    # Specify torch_dtype for memory efficiency (bf16 if available, else fp16)
-    dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name_or_path,
-        torch_dtype=dtype,
-        device_map=device_map, # Handles device placement
-        trust_remote_code=True
-    )
-    model.eval() # Set model to evaluation mode
-
-    # Qwen tokenizer often doesn't need a separate image processor loaded explicitly
-    # The tokenizer's apply_chat_template or direct call handles image processing info
-    # We will pass PIL images directly during input preparation.
-
-    # Set padding token if missing (check model specifics, Qwen might handle differently)
-    if tokenizer.pad_token_id is None:
-         # Common practice, but verify if Qwen uses a different pad/eos strategy
-        tokenizer.pad_token_id = tokenizer.eos_token_id
-        model.config.pad_token_id = model.config.eos_token_id
-
-
-    print("Multimodal model and tokenizer loaded.")
-    # Return model and tokenizer (processor might be implicitly handled by tokenizer)
-    return model, tokenizer
-
-# --- NEW Function ---
-def prepare_multimodal_input_qwen(tokenizer, text_segments_and_images, final_instruction):
-    """
-    Prepares the multimodal input for Qwen-VL models using their typical format.
-
-    Args:
-        tokenizer: The loaded Qwen tokenizer.
-        text_segments_and_images (list): A list of tuples, where each tuple is
-                                         ('text', "text content") or ('image', "path/to/image.jpg").
-                                         Order matters.
-        final_instruction (str): The final text instruction (e.g., asking for CoT).
-
-    Returns:
-        dict: Inputs ready for model.generate() (e.g., {'input_ids': ..., 'attention_mask': ...})
-              Returns None on error.
-    """
-    query = []
-    image_paths_in_query = []
-
-    # Build the query structure expected by Qwen-VL tokenizer
-    for item_type, item_content in text_segments_and_images:
-        if item_type == 'text':
-            query.append({'text': item_content})
-        elif item_type == 'image':
-            # Check if image path exists before adding
-            if Path(item_content).exists():
-                 query.append({'image': item_content})
-                 image_paths_in_query.append(item_content) # Keep track for debugging/logging
-            else:
-                 print(f"Warning: Image path not found, skipping: {item_content}")
-                 query.append({'text': f'[Image unavailable: {Path(item_content).name}]'}) # Add placeholder text
-
-    # Add the final instruction text
-    query.append({'text': final_instruction})
-
-    # Use the tokenizer to prepare the full query (text + images)
-    # The Qwen tokenizer handles image loading/processing when paths are provided this way
-    try:
-        # The `tokenizer` call for Qwen-VL often handles image processing implicitly
-        # when given image paths in the structured query.
-        # We don't return pixel_values separately usually.
-        # Check Qwen documentation for exact arguments if needed.
-        # `padding=True`, `truncation=True` might need careful consideration with images.
-        # Let's try without padding/truncation initially, assuming prompt fits.
-        # Note: This assumes the tokenizer handles image loading via path.
-        # If it expects PIL Images, loading needs to happen before this call.
-        # Let's refine to load PIL images first for robustness.
-
-        query_with_pil = []
-        loaded_image_count = 0
-        for item in query:
-            if 'image' in item:
-                try:
-                    img = Image.open(item['image']).convert('RGB')
-                    query_with_pil.append({'image': img}) # Pass PIL image
-                    loaded_image_count += 1
-                except Exception as e:
-                    print(f"Error loading image {item['image']}: {e}. Skipping.")
-                    # Add placeholder text if image fails to load
-                    query_with_pil.append({'text': f'[Error loading image: {Path(item["image"]).name}]'})
-            else:
-                query_with_pil.append(item) # Keep text items as is
-
-        if loaded_image_count == 0:
-             print("Warning: No images were successfully loaded for this prompt.")
-
-        # Use apply_chat_template if available and appropriate for the model version
-        # Otherwise, use the direct call which often works for Qwen-VL multimodal
-        if hasattr(tokenizer, 'apply_chat_template'):
-             # Construct messages in chat format
-             messages = [{"role": "user", "content": query_with_pil}]
-             inputs = tokenizer.apply_chat_template(
-                 messages,
-                 add_generation_prompt=True, # Important for generation
-                 return_tensors="pt"
-             )
+    # Configure 4-bit quantization if requested and available
+    quantization_config = None
+    if use_4bit:
+        if BITSANDBYTES_AVAILABLE:
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16 # Or bfloat16 if supported and preferred
+            )
+            print("Configured for 4-bit quantization.")
         else:
-             # Fallback or alternative method if apply_chat_template isn't right
-             # This direct call often works for older Qwen-VL or specific setups
-             inputs = tokenizer(query_with_pil, return_tensors='pt')
+            print("Warning: 4-bit quantization requested but bitsandbytes is not available. Loading in default precision.")
 
-
-        print(f"DEBUG: Prepared inputs with {loaded_image_count} images.")
-        return inputs
-
+    # Load the processor
+    try:
+        processor = AutoProcessor.from_pretrained(model_name_or_path, trust_remote_code=True)
+        print("Processor loaded.")
     except Exception as e:
-        print(f"Error preparing multimodal input for Qwen-VL: {e}")
-        # Print query structure for debugging if error occurs
-        # print(f"DEBUG: Failed query structure: {query}") # Careful printing potentially large data
-        return None
+        print(f"Error loading processor for {model_name_or_path}: {e}")
+        raise e
 
+    # Load the model
+    dtype = torch.bfloat16 if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else torch.float16
+    print(f"Attempting to load model with dtype: {dtype if not quantization_config else '4-bit'}...")
+    try:
+        # Try specific class first if needed, fallback to AutoModel
+        ModelClass = LlavaOnevisionForConditionalGeneration # Default to specific class
+        try:
+             # Check if class exists before using it directly
+             from transformers import LlavaOnevisionForConditionalGeneration
+        except ImportError:
+             print("LlavaOnevisionForConditionalGeneration not found, using AutoModelForCausalLM.")
+             ModelClass = AutoModelForCausalLM
+
+        model = ModelClass.from_pretrained(
+            model_name_or_path,
+            torch_dtype=dtype if not quantization_config else None, # dtype ignored if quantizing
+            low_cpu_mem_usage=True,
+            device_map=device_map,
+            quantization_config=quantization_config, # Pass quantization config
+            trust_remote_code=True
+        )
+        print(f"Loaded using {ModelClass.__name__} class.")
+
+        model.eval() # Set model to evaluation mode
+        print("Model loaded and set to eval mode.")
+    except Exception as e:
+        print(f"Error loading model {model_name_or_path}: {e}")
+        if "requires you to execute the configuration file" in str(e):
+             print("Hint: `trust_remote_code=True` might be needed.")
+        if quantization_config and "CUDA setup failed" in str(e):
+             print("Hint: bitsandbytes might not be correctly installed or configured for your CUDA version.")
+        raise e
+
+    # Pad token handling
+    if not hasattr(processor, 'tokenizer'):
+         print("Warning: Processor does not have a 'tokenizer' attribute.")
+    elif processor.tokenizer.pad_token is None:
+        print("Setting pad_token to eos_token in tokenizer.")
+        try:
+            processor.tokenizer.pad_token = processor.tokenizer.eos_token
+            if hasattr(model, 'config') and model.config.pad_token_id is None:
+                 model.config.pad_token_id = processor.tokenizer.eos_token_id
+        except Exception as e:
+            print(f"Warning: Could not set pad_token: {e}")
+
+    print("Multimodal model and processor loading complete.")
+    return model, processor
+
+# --- REMOVED Function ---
+# def prepare_llava_prompt_string_and_images(...):
+# This function is no longer needed as apply_chat_template handles it.
 
 # --- MODIFIED Function ---
-def generate_cot(model, tokenizer, # Removed processor, assuming tokenizer handles it
-                 multimodal_input_data, # Structured input list
-                 final_instruction_text, # Final instruction part
-                 device, # Only used for moving inputs if needed
+def generate_cot(model, processor, # Takes processor now
+                 messages, # Structured conversation history (list of dicts)
                  max_new_tokens=512):
-    """Generates the CoT using the multimodal model."""
+    """
+    Generates the CoT using the multimodal model (LLaVA-OneVision style).
+    MODIFIED: Uses processor.apply_chat_template directly. Includes torch.inference_mode().
+    """
     if not TRANSFORMERS_AVAILABLE:
         return "Error: Transformers library not available."
 
     try:
-        # Prepare the structured input using the helper function
-        inputs = prepare_multimodal_input_qwen(tokenizer, multimodal_input_data, final_instruction_text)
-        if inputs is None:
-            return "Error: Failed to prepare multimodal inputs."
+        # --- Step 1: Prepare inputs using apply_chat_template ---
+        # This function now handles text formatting, image loading/processing, and tokenization
+        print(f"DEBUG: Calling apply_chat_template with {len(messages[0]['content'])} content items.")
+        inputs = processor.apply_chat_template(
+            messages,
+            add_generation_prompt=True, # Crucial for generation
+            tokenize=True,              # Ensure output is tokenized
+            return_tensors="pt"         # Return PyTorch tensors
+        )
+        # print(f"DEBUG: Final processor output keys: {inputs.keys()}") # Debug
 
-        # Move inputs to the correct device (model should already be on device via device_map)
+        # Move inputs to the correct device
         inputs = inputs.to(model.device)
 
-        # Generate
-        # Make sure generation config uses correct EOS token ID(s)
-        # Qwen models might have multiple EOS tokens
-        eos_token_id = [tokenizer.eos_token_id]
-        # Check for specific terminators used by Qwen-VL if needed
-        # e.g., tokenizer.convert_tokens_to_ids('<|endoftext|>'), tokenizer.convert_tokens_to_ids('<|im_end|>')
-        # Add them to eos_token_id list if necessary based on model card/examples
+        # --- Step 2: Generation using standard Transformers generate ---
+        print("Attempting CoT generation using standard Transformers generate...")
 
-        outputs = model.generate(
-            inputs['input_ids'],
-            attention_mask=inputs.get('attention_mask'), # Include attention mask if present
-            max_new_tokens=max_new_tokens,
-            temperature=0.7,
-            do_sample=True,
-            eos_token_id=eos_token_id, # Use potentially multiple EOS tokens
-            pad_token_id=tokenizer.pad_token_id # Ensure pad token is set
-        )
+        eos_token_id = processor.tokenizer.eos_token_id
+        pad_token_id = processor.tokenizer.pad_token_id
+        if pad_token_id is None:
+            pad_token_id = eos_token_id
 
-        # Decode response
-        # Response includes the prompt, need to decode the generated part only
-        # Handle potential differences in output structure based on input type
+        possible_eos_tokens = [eos_token_id]
+        # Add other EOS tokens if needed
+
+        # *** Use torch.inference_mode() for efficiency ***
+        with torch.inference_mode():
+            outputs = model.generate(
+                **inputs, # Pass processor outputs directly
+                max_new_tokens=max_new_tokens,
+                temperature=0.2,
+                do_sample=False, # Use greedy for CoT
+                eos_token_id=possible_eos_tokens,
+                pad_token_id=pad_token_id
+            )
+
+        # Decode only the newly generated part
         input_token_len = inputs['input_ids'].shape[1]
         generated_ids = outputs[0, input_token_len:]
-        result = tokenizer.decode(generated_ids, skip_special_tokens=True) # Skip special tokens for cleaner output
+        result = processor.tokenizer.decode(generated_ids, skip_special_tokens=True)
 
         return result.strip()
 
     except Exception as e:
         print(f"Error during CoT generation: {e}")
+        import traceback
+        traceback.print_exc()
         if "CUDA out of memory" in str(e):
-             print("CUDA out of memory. Try reducing max_new_tokens or using quantization (e.g., 4-bit).")
+             print("CUDA out of memory. Try reducing number of images in context or ensure 4-bit loading is active.")
         return f"Error generating CoT: {e}"
 
 
+# --- MODIFIED Function ---
 def main(args):
     """Main processing function."""
     if not TRANSFORMERS_AVAILABLE and not args.skip_generation:
         print("Transformers library needed for generation. Exiting.")
         return
+    # Check for bitsandbytes if 4bit requested
+    if args.use_4bit and not BITSANDBYTES_AVAILABLE:
+         print("Error: --use_4bit requested, but bitsandbytes library is not available. Please install it.")
+         exit(1)
+
 
     processed_dir = Path(args.processed_data_dir)
     tvqa_train_path = Path(args.tvqa_train_file)
@@ -230,13 +213,10 @@ def main(args):
     if processed_dir.is_dir():
         for clip_dir in processed_dir.iterdir():
             if not clip_dir.is_dir(): continue
-            metadata_file = clip_dir / "metadata_tvqa_text_centric.json"
+            metadata_file = clip_dir / "metadata_tvqa_text_centric.json" # Correct filename
             if metadata_file.exists():
-                # Find the method directory to locate frames
                 method_dirs = [d for d in clip_dir.iterdir() if d.is_dir()]
                 if method_dirs:
-                    # Use the first method found for locating frames
-                    # Assumes only one method was run per clip dir, or uses the first alphabetically
                     available_clips[clip_dir.name] = method_dirs[0].name
                 else:
                     print(f"Warning: Metadata found for {clip_dir.name}, but no method subfolder containing frames.")
@@ -246,24 +226,30 @@ def main(args):
         print("No processed clips found. Exiting.")
         return
 
-    # --- 2. Load Model (optional) ---
-    model, tokenizer = None, None
+    # --- 2. Load Model & Processor (optional) ---
+    model, processor = None, None # Using processor now
     if not args.skip_generation:
-        # Use device_map='auto' for potentially large models like Qwen-VL
         try:
-            model, tokenizer = load_multimodal_model_and_tokenizer(args.model_name_or_path, device_map="auto")
+            model, processor = load_multimodal_model_and_processor(
+                args.model_name_or_path,
+                use_4bit=args.use_4bit, # Pass quantization flag
+                device_map="auto"
+            )
         except Exception as e:
-            print(f"Failed to load model: {e}. Exiting.")
+            print(f"Failed to load model/processor: {e}. Exiting.")
             if "authentication" in str(e).lower():
                  print("Hint: You might need to log in using `huggingface-cli login` and accept model terms.")
             elif "out of memory" in str(e).lower():
-                 print("Hint: Model might be too large for your GPU RAM. Consider a smaller model or quantization (e.g., using bitsandbytes).")
+                 print("Hint: Model might be too large for your GPU RAM. Consider enabling --use_4bit or using a smaller model.")
             return
     else:
         print("Skipping model loading and CoT generation.")
 
     # --- 3. Process TVQA train file ---
     processed_count = 0
+    error_count = 0
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     with open(tvqa_train_path, 'r', encoding='utf-8') as infile, \
          open(output_path, 'w', encoding='utf-8') as outfile:
 
@@ -272,59 +258,59 @@ def main(args):
                 data = json.loads(line)
             except json.JSONDecodeError:
                 print(f"Skipping invalid JSON line #{line_num+1}: {line.strip()}")
+                error_count += 1
                 continue
 
             vid_name = data.get("vid_name")
             qid = data.get("qid")
 
-            # Check if we have processed data for this clip
             if not vid_name or vid_name not in available_clips:
                 continue
 
-            # Get the method name used for processing this clip
             method_name = available_clips[vid_name]
-
-            # Extract required fields
             q = data.get("q")
             a0, a1, a2, a3, a4 = data.get("a0"), data.get("a1"), data.get("a2"), data.get("a3"), data.get("a4")
             answer_idx = data.get("answer_idx")
             ts = data.get("ts")
 
-            if q is None or answer_idx is None or ts is None or vid_name is None or qid is None \
-               or a0 is None or a1 is None or a2 is None or a3 is None or a4 is None:
+            if not all([q, answer_idx is not None, ts, vid_name, qid, a0, a1, a2, a3, a4]):
                 print(f"Skipping entry QID {qid or 'Unknown'} due to missing fields.")
+                error_count += 1
                 continue
 
-            # Get correct answer
             answers = [a0, a1, a2, a3, a4]
             try:
                 correct_answer_text = answers[answer_idx]
             except IndexError:
                 print(f"Skipping entry QID {qid}: Invalid answer_idx {answer_idx}")
+                error_count += 1
                 continue
 
-            # Load the corresponding metadata
             metadata_file = processed_dir / vid_name / "metadata_tvqa_text_centric.json"
             try:
                 with open(metadata_file, 'r', encoding='utf-8') as meta_f:
                     clip_metadata_segments = json.load(meta_f)
             except Exception as e:
                 print(f"Skipping entry QID {qid}: Could not load or parse metadata {metadata_file}: {e}")
+                error_count += 1
                 continue
 
-            # Parse timestamp
             start_sec, end_sec = parse_timestamp(ts)
             if start_sec is None or end_sec is None:
                 print(f"Skipping entry QID {qid}: Invalid timestamp '{ts}'")
+                error_count += 1
                 continue
 
-            # --- Extract Multimodal Context ---
-            multimodal_context_list = [] # List of ('text', content) or ('image', path)
-            all_relevant_filenames_in_order = []
+            # --- Build Structured Input for apply_chat_template ---
+            content_list = [] # Build the list for the 'content' field
+            all_relevant_filenames_relative = [] # Store relative paths for output JSON
 
             if not clip_metadata_segments:
                  print(f"Warning QID {qid}: No segments found in metadata.")
+                 # Add a placeholder text if no segments overlap?
+                 content_list.append({"type": "text", "text": f"Context for time {start_sec:.2f}s - {end_sec:.2f}s (No specific subtitles/frames found in metadata)"})
             else:
+                found_overlap = False
                 for segment in clip_metadata_segments:
                     seg_start = segment.get("text_start_time_sec")
                     seg_end = segment.get("text_end_time_sec")
@@ -335,48 +321,65 @@ def main(args):
                     if seg_start is not None and seg_end is not None and \
                        max(start_sec, seg_start) < min(end_sec, seg_end):
 
-                        # Add text part
+                        found_overlap = True
+                        # Add text part first
                         segment_label = "Dialogue/Subtitle" if seg_text else "Gap/Silence"
                         display_text = seg_text if seg_text else "[]"
-                        multimodal_context_list.append(('text', f"Segment ({seg_start:.2f}s - {seg_end:.2f}s): {display_text}"))
+                        content_list.append({"type": "text", "text": f"Segment ({seg_start:.2f}s - {seg_end:.2f}s): {display_text}"})
 
-                        # Add corresponding frame *paths*
-                        chunk_filenames_relative = [chunk.get("saved_chunk_filename") for chunk in corresponding_chunks if chunk.get("saved_chunk_filename")]
+                        # Add corresponding frame *paths* after the text for this segment
+                        chunk_info_list = [chunk for chunk in corresponding_chunks if chunk.get("saved_chunk_filename")]
 
-                        if chunk_filenames_relative:
-                            # Sort filenames based on frame number
+                        if chunk_info_list:
+                            # Sort chunks within the segment
                             try:
-                                sorted_chunk_filenames = sorted(chunk_filenames_relative, key=lambda x: int(Path(x).stem.replace('frame','')))
+                                sorted_chunk_info = sorted(chunk_info_list, key=lambda x: int(Path(x["saved_chunk_filename"]).stem.replace('frame','')))
                             except:
-                                sorted_chunk_filenames = sorted(chunk_filenames_relative)
+                                sorted_chunk_info = sorted(chunk_info_list, key=lambda x: x["chunk_start_time_sec"])
 
                             # Add image paths to the list
-                            for fname in sorted_chunk_filenames:
-                                # Construct full path: processed_dir / vid_name / method_name / fname
-                                # Note: saved_chunk_filename already contains method_name/fname.jpg
-                                full_image_path = processed_dir / vid_name / fname
-                                multimodal_context_list.append(('image', str(full_image_path)))
-                                all_relevant_filenames_in_order.append(fname) # Store relative path for output JSON
-                        else:
-                            multimodal_context_list.append(('text', "  Frames: [No corresponding processed frames found in metadata for this segment]"))
+                            image_paths_added_segment = []
+                            for chunk_info in sorted_chunk_info:
+                                filename_basename = chunk_info["saved_chunk_filename"]
+                                full_image_path = processed_dir / vid_name / method_name / filename_basename
+                                relative_image_path = f"{method_name}/{filename_basename}"
+
+                                if full_image_path.exists():
+                                     # Add image type with the *path string* for apply_chat_template
+                                     content_list.append({"type": "image", "image": str(full_image_path)})
+                                     all_relevant_filenames_relative.append(relative_image_path)
+                                     image_paths_added_segment.append(str(full_image_path))
+                                else:
+                                     print(f"Warning QID {qid}: Image file not found {full_image_path}, skipping.")
+                                     content_list.append({"type": "text", "text": f"[Image file not found: {relative_image_path}]"})
+                            # Optional: Add text indicating which frames were just shown
+                            # if image_paths_added_segment:
+                            #      content_list.append({"type": "text", "text": f"(Frames corresponding to above segment: {len(image_paths_added_segment)} images)"})
+
+                if not found_overlap:
+                     content_list.append({"type": "text", "text": f"Context for time {start_sec:.2f}s - {end_sec:.2f}s (No specific subtitles/frames found overlapping in metadata)"})
 
 
-            # Generate CoT (optional)
-            generated_cot = "Generation skipped."
-            if not args.skip_generation and model and tokenizer:
-                # Define the final instruction part of the prompt
-                final_instruction = f"""\n\nBased ONLY on the interleaved context above (text segments and the visual information from the corresponding frames):
+            # Add the final instruction asking for CoT
+            final_instruction = f"""\n\nBased ONLY on the interleaved context above (text segments and the visual information from the corresponding frames):
 Question: "{q}"
 Correct Answer: "{correct_answer_text}"
 
 Generate the chain of thought reasoning process step-by-step, starting with "Step 1:" and ensuring the reasoning strictly uses the provided sequential context."""
+            content_list.append({"type": "text", "text": final_instruction})
 
-                # Generate CoT using the multimodal input list and final instruction
+            # Final structure for apply_chat_template
+            messages = [{"role": "user", "content": content_list}]
+
+            # Generate CoT (optional)
+            generated_cot = "Generation skipped."
+            if not args.skip_generation and model and processor:
+                # Call generate_cot with the messages structure
                 generated_cot = generate_cot(
-                    model, tokenizer,
-                    multimodal_context_list, # The list of ('text',...) and ('image', path) tuples
-                    final_instruction,
-                    None, # Device handled by device_map in model loading
+                    model, processor,
+                    messages, # Pass the structured messages list
+                    # final_instruction no longer needed here, it's in messages
+                    None, # Device handled by model's device_map
                     args.max_new_tokens
                 )
 
@@ -389,13 +392,11 @@ Generate the chain of thought reasoning process step-by-step, starting with "Ste
                 "answer_options": answers,
                 "correct_answer_idx": answer_idx,
                 "correct_answer_text": correct_answer_text,
-                # Store a summary of context used, maybe just the text parts?
-                "context_summary": [item[1] for item in multimodal_context_list if item[0] == 'text'],
-                "relevant_chunk_filenames": all_relevant_filenames_in_order, # List filenames used
+                "context_summary": [item['text'] for item in content_list if item['type'] == 'text'], # Extract text parts
+                "relevant_chunk_filenames": all_relevant_filenames_relative,
                 "generated_cot": generated_cot
             }
 
-            # Write to output file
             outfile.write(json.dumps(output_data) + '\n')
             processed_count += 1
 
@@ -404,26 +405,33 @@ Generate the chain of thought reasoning process step-by-step, starting with "Ste
                 break
 
     print(f"\nFinished processing. Generated CoT data for {processed_count} entries.")
+    if error_count > 0:
+        print(f"Encountered {error_count} errors or skipped entries during processing (check logs).")
     print(f"Output saved to: {output_path}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate Chain-of-Thought annotations for TVQA using preprocessed data and a local MULTIMODAL LLM.")
+    parser = argparse.ArgumentParser(description="Generate Chain-of-Thought annotations for TVQA using preprocessed data and a local MULTIMODAL LLM (LLaVA-style).")
     parser.add_argument("processed_data_dir", type=str, help="Path to the base directory containing processed clip folders (e.g., 'processed_videos').")
     parser.add_argument("tvqa_train_file", type=str, help="Path to the TVQA training JSONL file (e.g., 'tvqa_train.jsonl').")
     parser.add_argument("output_file", type=str, help="Path to save the output JSONL file with generated CoT.")
-    # --- Updated Default Model ---
-    parser.add_argument("--model_name_or_path", type=str, default="Qwen/Qwen-VL-Chat", # Using smaller Qwen-VL-Chat as default example
-                        help="Hugging Face model name or path for CoT generation (e.g., 'Qwen/Qwen2.5-VL-32B-Instruct', 'Qwen/Qwen-VL-Chat').")
+    parser.add_argument("--model_name_or_path", type=str, default="llava-hf/llava-onevision-qwen2-0.5b-ov-hf", # Placeholder - Use actual ID
+                        help="Hugging Face model name or path for CoT generation (e.g., 'llava-hf/llava-onevision-qwen2-7b-ov-hf', 'llava-hf/llava-v1.6-mistral-7b-hf').")
     parser.add_argument("--max_new_tokens", type=int, default=512, help="Maximum number of new tokens to generate for CoT.")
     parser.add_argument("--limit", type=int, default=None, help="Limit processing to the first N matching TVQA entries.")
-    parser.add_argument("--skip_generation", action='store_true', help="Skip loading model and generating CoT (useful for debugging data loading/context extraction).")
+    parser.add_argument("--skip_generation", action='store_true', help="Skip loading model and generating CoT.")
+    # --- Added 4-bit flag ---
+    parser.add_argument("--use_4bit", action='store_true', help="Load the model using 4-bit quantization (requires bitsandbytes).")
+
 
     args = parser.parse_args()
 
     # --- Add dependency check ---
     if not args.skip_generation and not TRANSFORMERS_AVAILABLE:
          print("Error: Transformers library is required for CoT generation. Please install it.")
+         exit(1)
+    if args.use_4bit and not BITSANDBYTES_AVAILABLE:
+         print("Error: --use_4bit requested, but bitsandbytes library is not found. Please install it (`pip install bitsandbytes`).")
          exit(1)
     try:
         from PIL import Image
@@ -433,42 +441,22 @@ if __name__ == "__main__":
 
 
     main(args)
+# **Summary of Changes:**
 #
-# **Key Changes and How it Works:**
+# 1.  **`load_multimodal_model_and_processor`:**
+#     * Added `use_4bit` argument.
+#     * Added `bitsandbytes` import check.
+#     * Configures `BitsAndBytesConfig` and passes it to `from_pretrained` if `use_4bit` is True and `bitsandbytes` is available.
+# 2.  **Removed `prepare_llava_prompt_string_and_images`:** This function is no longer needed as `apply_chat_template` handles the formatting.
+# 3.  **`generate_cot`:**
+#     * Changed signature to accept the structured `messages` list instead of separate context components.
+#     * **Removed** the manual prompt building logic.
+#     * **Added** the call to `processor.apply_chat_template(messages, ..., return_tensors="pt")` to get the final `inputs` dictionary.
+#     * **Added** `with torch.inference_mode():` around the `model.generate()` call.
+# 4.  **`main`:**
+#     * **Builds `messages` list:** Iterates through the relevant segments and chunks, creating the list of dictionaries (`{"type": "text", "text": ...}` or `{"type": "image", "image": path_string}`) as required by `apply_chat_template`.
+#     * Calls the modified `generate_cot` function, passing the `messages` list.
+#     * Added `--use_4bit` command-line argument.
 #
-# 1.  **Model Loading (`load_multimodal_model_and_tokenizer`):**
-#     * Updated to use `trust_remote_code=True`, often needed for Qwen models.
-#     * Uses `device_map="auto"` for better handling of large models on available hardware (GPU/CPU).
-#     * Assumes the Qwen `AutoTokenizer` handles necessary image processing setup internally or during the call.
-#
-# 2.  **Input Preparation (`prepare_multimodal_input_qwen`):**
-#     * This new function takes a list of tuples `[('text', text_content), ('image', image_path), ...]`.
-#     * It iterates through this list:
-#         * Loads images from paths using PIL.
-#         * Creates a structured list `query_with_pil` containing `{'text': ...}` and `{'image': <PIL.Image>}` dictionaries.
-#     * It then uses `tokenizer.apply_chat_template` (or a direct call as fallback) to process this list into the format expected by the Qwen model's `generate` method. This step internally handles image preprocessing and embedding image information alongside text tokens.
-#
-# 3.  **CoT Generation (`generate_cot`):**
-#     * The function signature now accepts the structured `multimodal_input_data` list and the `final_instruction_text`.
-#     * It calls `prepare_multimodal_input_qwen` to get the model inputs.
-#     * It calls `model.generate` with the prepared inputs (which now include image information).
-#     * Decoding extracts the generated text (the CoT).
-#
-# 4.  **Main Logic (`main`):**
-#     * Loads the multimodal model and tokenizer.
-#     * Iterates through TVQA entries.
-#     * Loads your metadata.
-#     * Extracts relevant text segments and *image paths* based on the timestamp `ts`.
-#     * Builds the `multimodal_context_list` containing the sequence of `('text', ...)` and `('image', path)` tuples.
-#     * Defines the `final_instruction` asking for the CoT.
-#     * Calls the modified `generate_cot` with the structured list and final instruction.
-#     * Saves the results.
-#
-# **Before Running:**
-#
-# * **Install Dependencies:** `pip install transformers torch Pillow accelerate bitsandbytes` (bitsandbytes for potential quantization if needed). You might need specific versions depending on the Qwen model. Check its Hugging Face model card.
-# * **Model Access:** Ensure you have accepted terms and can download the specific Qwen-VL model you choose (e.g., `Qwen/Qwen2.5-VL-32B-Instruct` or the smaller `Qwen/Qwen-VL-Chat` used as the default example). You might need to log in using `huggingface-cli login`.
-# * **VRAM:** Be mindful of VRAM requirements, especially for the 32B model. You might need quantization (like 4-bit loading via `bitsandbytes`) integrated into the `load_multimodal_model_and_tokenizer` function if you run out of memory.
-# * **Paths:** Double-check all input/output paths in the command-line arguments.
-#
-# This script now provides the framework for using a powerful multimodal model like Qwen-VL to generate CoT reasoning directly informed by both the subtitles and the visual content of your processed fram
+# This version now correctly uses the modern `apply_chat_template` method for multimodal input preparation, as shown in the documentation you provided, and incorporates your requests for 4-bit loading and inference mode. Remember to install `bitsandbytes` (`pip install bitsandbytes`) if you want to use the `--use_4bit` fl
+
