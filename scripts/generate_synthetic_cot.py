@@ -38,7 +38,6 @@ def load_multimodal_model_and_processor(model_name_or_path, use_4bit=True, devic
     Loads a multimodal model (specifically using Qwen2_5_VLForConditionalGeneration)
     and its processor using AutoProcessor.
     Optionally loads the model in 4-bit. Assumes libraries are installed.
-    Sets model.config.use_image_token = True.
     """
     print(f"Loading multimodal model and processor: {model_name_or_path}...")
     print(f"Attempting to use device_map='{device_map}'")
@@ -93,13 +92,6 @@ def load_multimodal_model_and_processor(model_name_or_path, use_4bit=True, devic
         )
         print(f"Loaded model using Qwen2_5_VLForConditionalGeneration class.")
 
-        # *** Set use_image_token based on user suggestion ***
-        if hasattr(model, 'config'):
-            print("Setting model.config.use_image_token = True")
-            model.config.use_image_token = True
-        else:
-            print("Warning: Model object does not have a 'config' attribute. Cannot set use_image_token.")
-
         model.eval() # Set model to evaluation mode (disables dropout, etc.)
         print("Model loaded and set to eval mode.")
 
@@ -142,81 +134,94 @@ def load_multimodal_model_and_processor(model_name_or_path, use_4bit=True, devic
     return model, processor
 
 
+# --- Using the generate_cot function provided by the user that worked ---
 def generate_cot(model, processor, messages, max_new_tokens=512, temperature=0.2, do_sample=False):
     """
     Generates the CoT using the loaded multimodal model and processor.
     Specifically optimized for Qwen 2.5 VL models.
     """
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
     try:
         print("Preparing structured messages for CoT generation...")
-        
+
         # Extract images from the messages structure
         images_list = []
-        for item in messages[0]["content"]:
-            if item.get("type") == "image" and "image" in item:
-                if isinstance(item["image"], str):
-                    # Load the image using PIL if it's a path string
-                    try:
-                        img = Image.open(item["image"]).convert("RGB")
-                        images_list.append(img)
-                    except Exception as img_e:
-                        print(f"Warning: Failed to load image {item['image']}: {img_e}. Skipping.")
-                else:
-                    # Image is already a PIL Image object
-                    images_list.append(item["image"])
-        
+        # Ensure messages[0]["content"] exists and is a list before iterating
+        if messages and isinstance(messages, list) and len(messages) > 0 and \
+           "content" in messages[0] and isinstance(messages[0]["content"], list):
+            for item in messages[0]["content"]:
+                if item.get("type") == "image" and "image" in item:
+                    if isinstance(item["image"], str):
+                        # Load the image using PIL if it's a path string
+                        try:
+                            img = Image.open(item["image"]).convert("RGB")
+                            images_list.append(img)
+                        except Exception as img_e:
+                            print(f"Warning: Failed to load image {item['image']}: {img_e}. Skipping.")
+                    elif isinstance(item["image"], Image.Image):
+                         # Image is already a PIL Image object
+                         images_list.append(item["image"])
+                    else:
+                         print(f"Warning: Image item has unexpected type: {type(item['image'])}. Skipping.")
+        else:
+             print("Warning: Invalid 'messages' structure provided to generate_cot. Cannot extract images.")
+
+
         # Apply chat template to format the input for the model
-        print(messages)
         # Use the whole messages structure with the chat template
+        # This assumes the template handles image placeholders/tokens correctly
         formatted_text = processor.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=True
         )
-        
+
         # Process the formatted text and images together
+        # This call combines text tokenization and image processing
         inputs = processor(
-            text=formatted_text,
-            images=images_list,
+            text=formatted_text, # Pass the single formatted string
+            images=images_list,  # Pass the list of PIL images
             return_tensors="pt",
             padding=True
         )
-        
+
         # Move inputs to the appropriate device
         inputs = inputs.to(model.device)
         print(f"Inputs prepared and moved to device: {model.device}")
-        
+
         # Set up generation parameters
         gen_kwargs = {
             "max_new_tokens": max_new_tokens,
             "temperature": temperature,
             "do_sample": do_sample,
         }
-        
+
         # Add padding token ID if available
         if processor.tokenizer.pad_token_id is not None:
             gen_kwargs["pad_token_id"] = processor.tokenizer.pad_token_id
         elif processor.tokenizer.eos_token_id is not None:
+            # Use EOS as PAD if PAD is missing (common practice)
+            print("Warning: pad_token_id not set, using eos_token_id for padding during generation.")
             gen_kwargs["pad_token_id"] = processor.tokenizer.eos_token_id
-            
-        # Add EOS token ID if available
+        else:
+             print("Warning: Neither pad_token_id nor eos_token_id is set in tokenizer. Generation might behave unexpectedly.")
+
+
+        # Add EOS token ID if available (for stopping generation)
         if processor.tokenizer.eos_token_id is not None:
             gen_kwargs["eos_token_id"] = processor.tokenizer.eos_token_id
-        
+
         # Generate with inference mode for efficiency
         with torch.inference_mode():
             outputs = model.generate(
                 **inputs,
                 **gen_kwargs
             )
-        
+
         # Decode only the newly generated tokens
         input_token_len = inputs['input_ids'].shape[1]
         generated_ids = outputs[0, input_token_len:]
         result = processor.tokenizer.decode(generated_ids, skip_special_tokens=True)
-        
+
         print("CoT generation finished.")
         return result.strip()
 
@@ -224,7 +229,55 @@ def generate_cot(model, processor, messages, max_new_tokens=512, temperature=0.2
         print(f"Error during CoT generation: {e}")
         import traceback
         traceback.print_exc()
+        # Add specific checks for common errors if needed
+        if "Image features and image tokens do not match" in str(e):
+             print("Error Hint: Check if the chat template correctly inserts image tokens matching the number of images provided.")
         return f"Error generating CoT: {e}"
+# --- End of user-provided generate_cot function ---
+
+
+# --- Function to Create the Instruction Prompt ---
+def create_cot_prompt(question, answer_options, correct_answer):
+    """
+    Creates the detailed instruction prompt for the CoT generation task.
+
+    Args:
+        question (str): The question text.
+        answer_options (list): A list of answer strings.
+        correct_answer (str): The correct answer text.
+
+    Returns:
+        str: The formatted instruction prompt string.
+    """
+    # Format answer options for better readability in the prompt
+    options_str = "\n".join([f"({i}) {ans}" for i, ans in enumerate(answer_options)])
+
+    # Construct the detailed prompt
+    instruction_prompt = f"""\n
+CONTEXT:
+The preceding sequence presents interleaved text segments (dialogue/subtitles) and associated visual frames.
+
+TASK:
+Based *strictly* on the sequence of text segments and visual frames provided above:
+
+Question: "{question}"
+
+Answer Options:
+{options_str}
+
+Correct Answer: "{correct_answer}"
+
+Generate a step-by-step chain of thought reasoning process that logically derives the correct answer from ONLY the given context. Start with "Step 1:".
+
+INSTRUCTIONS for Reasoning:
+1.  **Grounding:** Ensure each step explicitly refers to specific text segments (e.g., 'Segment (X.XXs - Y.YYs): ...') AND/OR specific visual frames (e.g., 'Image Z shows...', 'Frames A through B depict...'). Do not assume information not present.
+2.  **Observation First:** If the question asks about a visual detail (like an object, action, or location), first describe the relevant visual evidence from the corresponding frames before drawing conclusions or making inferences.
+3.  **Timing/Concurrency:** Pay close attention to timing. If the question asks what is happening *when* something else occurs, clearly link the visual evidence (actions/objects) to the *exact time window* of the event mentioned in the question (usually found in the text segments).
+4.  **Structure:** Follow a clear reasoning structure (e.g., Identify timeframe -> Describe Visuals -> Analyze Text -> Synthesize & Conclude).
+5.  **Goal:** Explain step-by-step how the Correct Answer can be reached using only the provided text and images.
+"""
+    return instruction_prompt
+# --- End of create_cot_prompt function ---
 
 
 def main(args):
@@ -251,49 +304,40 @@ def main(args):
 
 
     # --- 1. Find available processed clips ---
-    # Creates a mapping from clip name (vid_name) to the subfolder containing frames
     available_clips = {} # { clip_name: method_folder_name }
     print(f"Scanning for processed clips in: {processed_dir}")
     for clip_dir in processed_dir.iterdir():
-        if not clip_dir.is_dir(): continue # Skip non-directory items
-        # Define the expected metadata file name
+        if not clip_dir.is_dir(): continue
         metadata_file = clip_dir / "metadata_tvqa_text_centric.json"
         if metadata_file.exists():
-            # Find subdirectories within the clip directory (expected to contain frames)
             method_dirs = [d for d in clip_dir.iterdir() if d.is_dir()]
             if method_dirs:
-                # Assume the first subdirectory found contains the relevant frames/chunks
                 available_clips[clip_dir.name] = method_dirs[0].name
             else:
-                # Metadata exists, but no frame folder found - issue warning
                 print(f"Warning: Metadata found for {clip_dir.name}, but no subfolder containing frames/chunks detected.")
-
 
     print(f"Found {len(available_clips)} processed clips with metadata and frame folders.")
     if not available_clips:
         print("Error: No processed clips found matching the expected structure. Exiting.")
         print(f"Expected structure: {processed_dir}/<clip_name>/metadata_tvqa_text_centric.json and {processed_dir}/<clip_name>/<method_folder>/frame_*.jpg")
-        return # Exit if no clips to process
+        return
 
     # --- 2. Load Model & Processor (if not skipping generation) ---
     model, processor = None, None
     if not args.skip_generation:
         try:
-            # Load the specified model and processor
             model, processor = load_multimodal_model_and_processor(
                 args.model_name_or_path,
                 use_4bit=args.use_4bit,
-                device_map="auto" # Recommended for handling device placement automatically
+                device_map="auto"
             )
         except Exception as e:
-            # If model loading fails, print error and exit gracefully
             print(f"Fatal: Failed to load model/processor: {e}. Exiting.")
             return
     else:
         print("Skipping model loading and CoT generation as per --skip_generation flag.")
 
     # --- 3. Process TVQA train file ---
-    # Initialize counters for tracking progress and issues
     processed_count = 0
     error_count = 0
     skipped_clips = 0
@@ -303,220 +347,166 @@ def main(args):
     skipped_answer_idx = 0
 
     print(f"Starting processing of TVQA file: {tvqa_train_path}")
-    # Open input TVQA file and output file
     with open(tvqa_train_path, 'r', encoding='utf-8') as infile, \
          open(output_path, 'w', encoding='utf-8') as outfile:
 
-        # Iterate through each line (JSON object) in the TVQA file
         for line_num, line in enumerate(tqdm(infile, desc="Processing TVQA entries")):
             try:
-                # Load JSON data from the current line
                 data = json.loads(line)
             except json.JSONDecodeError:
-                # Handle lines that are not valid JSON
                 print(f"Skipping invalid JSON line #{line_num+1}: {line.strip()}")
                 error_count += 1
                 continue
 
-            # --- Extract data for the current TVQA entry ---
             vid_name = data.get("vid_name")
-            qid = data.get("qid", f"unknown_qid_line_{line_num+1}") # Use placeholder if qid is missing
+            qid = data.get("qid", f"unknown_qid_line_{line_num+1}")
 
-            # Skip if the video clip wasn't found in the processed directory
             if not vid_name or vid_name not in available_clips:
                 skipped_clips += 1
                 continue
 
-            method_name = available_clips[vid_name] # Get the frame folder name for this clip
-            q = data.get("q") # Question text
-            # Answer options
+            method_name = available_clips[vid_name]
+            q = data.get("q")
             a0, a1, a2, a3, a4 = data.get("a0"), data.get("a1"), data.get("a2"), data.get("a3"), data.get("a4")
-            answer_idx = data.get("answer_idx") # Index of the correct answer
-            ts = data.get("ts") # Timestamp string 'start-end'
+            answer_idx = data.get("answer_idx")
+            ts = data.get("ts")
 
-            # Validate that all essential fields are present
             if not all([q, answer_idx is not None, ts, vid_name, qid, a0, a1, a2, a3, a4]):
                 print(f"Skipping entry QID {qid}: Missing one or more essential fields (q, a0-4, answer_idx, ts, vid_name).")
                 skipped_missing_fields += 1
                 error_count += 1
                 continue
 
-            # Get the text of the correct answer
             answers = [a0, a1, a2, a3, a4]
             try:
                 correct_answer_text = answers[int(answer_idx)]
             except (IndexError, ValueError):
-                # Handle cases where answer_idx is invalid
                 print(f"Skipping entry QID {qid}: Invalid answer_idx {answer_idx}")
                 skipped_answer_idx += 1
                 error_count += 1
                 continue
 
-            # --- Load Metadata for the specific clip ---
             metadata_file = processed_dir / vid_name / "metadata_tvqa_text_centric.json"
             try:
                 with open(metadata_file, 'r', encoding='utf-8') as meta_f:
-                    clip_metadata_segments = json.load(meta_f) # Load the list of segments
+                    clip_metadata_segments = json.load(meta_f)
             except FileNotFoundError:
-                 # This should ideally not happen if available_clips logic is correct
                  print(f"Error QID {qid}: Metadata file not found at {metadata_file}. Inconsistency detected.")
                  error_count += 1
                  continue
             except Exception as e:
-                # Handle errors during metadata file reading or JSON parsing
                 print(f"Skipping entry QID {qid}: Could not load or parse metadata {metadata_file}: {e}")
                 skipped_meta_error += 1
                 error_count += 1
                 continue
 
-            # --- Parse Timestamp ---
             start_sec, end_sec = parse_timestamp(ts)
             if start_sec is None or end_sec is None:
-                # Skip if timestamp string is invalid
                 skipped_bad_ts += 1
                 error_count += 1
                 continue
 
-            # --- Build Structured Input (for generate_cot function) ---
-            # This list will contain dictionaries for text and image *paths*
-            # The generate_cot function will load the images and create the final input
             content_list = []
-            # Keep track of the relative paths of images used for this entry
             all_relevant_filenames_relative = []
-
-            found_overlap = False # Flag to track if any relevant segment was found
-            # Ensure metadata is a list before iterating
+            found_overlap = False
             if not isinstance(clip_metadata_segments, list):
                  print(f"Warning QID {qid}: Metadata content in {metadata_file} is not a list as expected. Skipping segment processing.")
-                 clip_metadata_segments = [] # Treat as empty list to avoid crashing
+                 clip_metadata_segments = []
 
-            # Iterate through segments defined in the metadata
             for segment in clip_metadata_segments:
-                # Basic validation of segment structure
                 if not isinstance(segment, dict):
                     print(f"Warning QID {qid}: Found non-dict item in metadata segment list. Skipping item.")
                     continue
 
-                # Extract segment details
                 seg_start = segment.get("text_start_time_sec")
                 seg_end = segment.get("text_end_time_sec")
-                seg_text = segment.get("text", "").strip() # Get subtitle text, default to empty string
-                corresponding_chunks = segment.get("corresponding_chunks", []) # List of frame info dicts
+                seg_text = segment.get("text", "").strip()
+                corresponding_chunks = segment.get("corresponding_chunks", [])
 
-                # Check if the segment's time range overlaps with the query's time range
                 if seg_start is not None and seg_end is not None and \
-                   max(start_sec, seg_start) < min(end_sec, seg_end): # Standard overlap condition
+                   max(start_sec, seg_start) < min(end_sec, seg_end):
 
                     found_overlap = True
-                    # Add text part first (subtitle or placeholder)
                     display_text = seg_text if seg_text else "[Visual context without subtitle]"
-                    # Include timing in the text for better context understanding by the model
                     content_list.append({"type": "text", "text": f"Segment ({seg_start:.2f}s - {seg_end:.2f}s): {display_text}"})
 
-                    # Prepare and sort corresponding frame/chunk paths for this segment
                     chunk_info_list = [chunk for chunk in corresponding_chunks if isinstance(chunk, dict) and chunk.get("saved_chunk_filename")]
 
                     if chunk_info_list:
-                        # Sort chunks chronologically, preferably by filename (frameXXXX) or time
                         try:
-                            # Attempt sorting based on numeric part of filename (e.g., 'frame0012' -> 12)
                             sorted_chunk_info = sorted(chunk_info_list, key=lambda x: int(Path(x["saved_chunk_filename"]).stem.replace('frame','')))
                         except ValueError:
-                            # Fallback to sorting by start time if filenames are not standard
                             print(f"Warning QID {qid}: Non-standard frame filenames in segment {seg_start:.2f}-{seg_end:.2f}. Sorting by time.")
                             sorted_chunk_info = sorted(chunk_info_list, key=lambda x: x.get("chunk_start_time_sec", 0))
 
-
-                        # Add image *paths* to the content list for this segment
-                        # The generate_cot function will now load these paths into PIL images
                         images_added_this_segment = 0
                         for chunk_info in sorted_chunk_info:
                             filename_basename = chunk_info["saved_chunk_filename"]
-                            # Construct full path needed for loading by the processor
                             full_image_path = processed_dir / vid_name / method_name / filename_basename
-                            # Store relative path for output JSON (more portable)
                             relative_image_path = f"{method_name}/{filename_basename}"
 
-                            # Check if the image file actually exists before adding its path
                             if full_image_path.exists() and full_image_path.is_file():
-                                # Add the image *path* string; generate_cot will load it
                                 content_list.append({"type": "image", "image": str(full_image_path)})
                                 all_relevant_filenames_relative.append(relative_image_path)
                                 images_added_this_segment += 1
                             else:
-                                # Warn if an expected image file is missing
                                 print(f"Warning QID {qid}: Image file not found or is not a file: {full_image_path}, skipping path.")
 
-            # --- Handle cases with no overlapping segments or no images ---
             if not found_overlap:
                  print(f"Warning QID {qid}: No overlapping segments found in metadata for time range {start_sec:.2f}s - {end_sec:.2f}s.")
-                 # Provide context about the time range even if no specific segments match
                  content_list.append({"type": "text", "text": f"Focused time range: {start_sec:.2f}s - {end_sec:.2f}s. No specific subtitles or frames identified for this exact interval."})
 
-            # Check if any images were successfully added (by checking for 'image' type in content_list)
             if not any(item.get("type") == "image" for item in content_list):
                 print(f"Warning QID {qid}: No valid image paths were added to the context for this entry.")
-                # Add a note indicating lack of visual information
                 content_list.append({"type": "text", "text": "[No visual frames available for this query time.]"})
 
+            # --- Create the instruction prompt using the new function ---
+            final_instruction = create_cot_prompt(q, answers, correct_answer_text)
 
-            # --- Add the final instruction asking for CoT reasoning ---
-            # Craft a clear prompt asking for step-by-step reasoning based *only* on provided context
-            final_instruction = f"""\n\nBased *only* on the sequence of text segments and visual frames provided above:
-Question: "{q}"
-Correct Answer: "{correct_answer_text}"
-
-Provide a step-by-step chain of thought reasoning process that logically derives the correct answer from the given context. Start with "Step 1:" and ensure each step explicitly refers to the information presented in the text segments or visual frames."""
+            # --- Append the instruction prompt ---
             content_list.append({"type": "text", "text": final_instruction})
 
-            # --- Prepare messages structure (still needed to pass to generate_cot) ---
+            # --- Prepare messages structure ---
             messages = [{"role": "user", "content": content_list}]
 
             # --- Generate CoT (if model loaded) ---
-            generated_cot = "Generation skipped." # Default value
+            generated_cot = "Generation skipped."
             if not args.skip_generation and model and processor:
-                # Call the generation function which now handles the input formatting via apply_chat_template
                 generated_cot = generate_cot(
                     model, processor,
-                    messages, # Pass the structured messages list
+                    messages,
                     max_new_tokens=args.max_new_tokens,
                     temperature=args.temperature,
                     do_sample=args.do_sample
                 )
-                # Check if generation returned an error message
                 if generated_cot.startswith("Error generating CoT:"):
-                    error_count += 1 # Increment error count if generation failed
-
+                    error_count += 1
 
             # --- Prepare output data for JSONL ---
             output_data = {
                 "qid": qid,
                 "vid_name": vid_name,
-                "timestamp": ts, # Original timestamp string
-                "query_start_sec": start_sec, # Parsed start time
-                "query_end_sec": end_sec,     # Parsed end time
+                "timestamp": ts,
+                "query_start_sec": start_sec,
+                "query_end_sec": end_sec,
                 "question": q,
-                "answer_options": answers,
+                "answer_options": answers, # Keep original list format here
                 "correct_answer_idx": answer_idx,
                 "correct_answer_text": correct_answer_text,
-                # Extract text parts from context for readability in output file
-                "context_summary": [item['text'] for item in content_list[:-1] if item.get('type') == 'text'], # Exclude the final instruction
+                "context_summary": [item['text'] for item in content_list[:-1] if item.get('type') == 'text'], # Exclude final instruction
                 "final_instruction_prompt": final_instruction, # Store the exact instruction used
-                "relevant_chunk_filenames": all_relevant_filenames_relative, # List of relative image paths used
+                "relevant_chunk_filenames": all_relevant_filenames_relative,
                 "model_used": args.model_name_or_path if not args.skip_generation else "N/A",
-                "generated_cot": generated_cot # The generated reasoning or error message
+                "generated_cot": generated_cot
             }
 
-            # Write the processed data (including CoT) as a JSON line to the output file
             outfile.write(json.dumps(output_data) + '\n')
-            processed_count += 1 # Increment count of successfully processed entries
+            processed_count += 1
 
-            # --- Check processing limit ---
             if args.limit and processed_count >= args.limit:
                 print(f"\nReached processing limit of {args.limit} entries.")
-                break # Stop processing more entries
+                break
 
-    # --- Print Summary ---
     print("\n--- Processing Summary ---")
     print(f"Successfully processed and wrote {processed_count} entries.")
     print(f"Skipped {skipped_clips} entries due to missing/unmatched video clips.")
@@ -529,29 +519,20 @@ Provide a step-by-step chain of thought reasoning process that logically derives
 
 
 if __name__ == "__main__":
-    # --- Command Line Argument Parsing ---
     parser = argparse.ArgumentParser(description="Generate Chain-of-Thought annotations for TVQA using preprocessed data and a multimodal LLM (e.g., Qwen-VL, LLaVA). Assumes necessary libraries are installed.")
-    # Required arguments
     parser.add_argument("processed_data_dir", type=str, help="Path to the base directory containing processed clip folders (e.g., 'processed_videos'). Expects structure: <dir>/<clip_name>/metadata_tvqa_text_centric.json and <dir>/<clip_name>/<method_folder>/frame_*.jpg")
     parser.add_argument("tvqa_train_file", type=str, help="Path to the TVQA training JSONL file (e.g., 'tvqa_train.jsonl').")
     parser.add_argument("output_file", type=str, help="Path to save the output JSONL file with generated CoT.")
-    # Model and generation arguments
-    # Updated default model to a specific Qwen 2.5 VL model
-    parser.add_argument("--model_name_or_path", type=str, default="Qwen/Qwen2.5-VL-3B-Instruct",
+    parser.add_argument("--model_name_or_path", type=str, default="Qwen/Qwen2.5-VL-7B-Instruct",
                         help="Hugging Face model name or path (e.g., 'Qwen/Qwen2.5-VL-3B-Instruct', 'Qwen/Qwen-VL-Chat', 'llava-hf/llava-v1.6-mistral-7b-hf').")
     parser.add_argument("--max_new_tokens", type=int, default=512, help="Maximum number of new tokens to generate for CoT.")
     parser.add_argument("--temperature", type=float, default=0.2, help="Sampling temperature for generation (e.g., 0.2 for more deterministic, 0.7 for more diverse). Use with --do_sample.")
     parser.add_argument("--do_sample", action='store_true', help="Enable sampling. If disabled (default), uses greedy decoding.")
-    # Processing control arguments
     parser.add_argument("--limit", type=int, default=None, help="Limit processing to the first N matching TVQA entries.")
     parser.add_argument("--skip_generation", action='store_true', help="Skip loading model and generating CoT (useful for debugging data processing).")
     parser.add_argument("--use_4bit", action='store_true', help="Load the model using 4-bit quantization (requires bitsandbytes and CUDA).")
 
-    # Parse the arguments provided by the user
     args = parser.parse_args()
-
-    # Run the main processing function
     main(args)
-
 
 
