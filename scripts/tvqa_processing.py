@@ -478,7 +478,7 @@ if __name__ == "__main__":
     parser.add_argument("--height", type=int, default=224, help="Resize height.")
     parser.add_argument("--whisper_model", type=str, default="base", help="Whisper model size (e.g., tiny, base, small, medium, large).")
     parser.add_argument("--force_generate_subs", action='store_true', help="Force subtitle generation using Whisper even if provided subs exist.")
-    parser.add_argument("--limit", type=int, default=3, help="Limit processing to the first N clips (for testing).")
+    parser.add_argument("--limit", type=int, default=None, help="Limit processing to the first N clips (for testing).")
     # Add argument to select averaging function if needed
     # parser.add_argument("--avg_func", type=str, default="blend_blur_with_last_frame", ...)
 
