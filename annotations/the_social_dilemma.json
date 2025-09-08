@@ -1,0 +1,138 @@
+[
+  {
+    "timestamp": "00:11:03",
+    "contextTimestamp": "00:10:03 - 00:12:03",
+    "question": "What's the full name of the guy on the screen?",
+    "answer": "The full name of the guy on the screen is Tim Kendall.",
+    "reasoning": "In the previous scene, when the guy started talking, his name along with the positions he worked in were shown in the screen. It was written \"Tim Kendall\" and this was the same guy that kept on speaking.",
+    "index": 0
+  },
+  {
+    "timestamp": "00:13:01",
+    "contextTimestamp": "00:12:01 - 00:14:01",
+    "question": "What's the full name of the guy on the screen?",
+    "answer": "The full name of the guy on the screen is Roger Mcnamee.",
+    "reasoning": "The guy in this scene introduces himself a as an early investor in technology. In the previous scene, when the guy sat down an introduction card appeared on the screen which wrote \"Roger Mcnamee facebook early investor\". The same guy continues the conversation up until this exact timestamp. Also the face of the guy at this scene matches that of the guy in the scene before where a introduction card appeared and said Roger Mcnamee.",
+    "index": 1
+  },
+  {
+    "timestamp": "00:13:14",
+    "contextTimestamp": "00:12:14 - 00:14:14",
+    "question": "What's the name of the guy in this exact scene and what did he invent?",
+    "answer": "The name of the guy in this exact scene is Aza Raskin and he invented infinite scroll.",
+    "reasoning": "In this scene, the guy is explaining how the users are the products and advertisers are the customers. Before he began speaking to provide authority, an introduction card had appeared which read \"Aza Raskin\" along with his credentials. One of the credentials read that he was the inventor of infinite scroll.",
+    "index": 2
+  },
+  {
+    "timestamp": "00:13:43",
+    "contextTimestamp": "00:12:43 - 00:14:43",
+    "question": "What are the companies displayed on the screen but were not named in the examples at this timestamp?",
+    "answer": "The companies that were displayed but were not named as the examples are: tiktok, google, pinterest, reddit and linkedin.",
+    "reasoning": "There are 10 companies displayed on the screen: facebook, snapchat, twitter, instagram, youtube, tiktok, google, pinterest, reddit and linkedin. But the narrator only explicitly named facebook, snapchat, twitter, instagram, youtube. So, the remaining companies that are displayed but nor named in the examples are: tiktok, google, pinterest, reddit and linkedin.",
+    "index": 3
+  },
+  {
+    "timestamp": "00:15:11",
+    "contextTimestamp": "00:14:11 - 00:16:11",
+    "question": "Which university is Shoshana, the woman on the screen, is the professor of?",
+    "answer": "Shoshana, the woman on the screen, is the professor of Harvard Business School.",
+    "reasoning": "Before the woman on the screen, sat on her chair an introduction card with her name and credentials were displayed to establish her as an authority of the field. On that introduction card, it was written \"Shoshana Zuboff\" and underneath it was written \"Harvard Business School\". That was the same woman as the one displayed on the screen at this exact timestamp. So, Soshana,  the woman on the screen, is the professor of Harvard Business School.",
+    "index": 4
+  },
+  {
+    "timestamp": "00:22:58",
+    "contextTimestamp": "00:21:58 - 00:23:58",
+    "question": "What's the magic trick shown in this exact timestamp?",
+    "answer": "The magic trick shown in this exact timestamp is levitation.",
+    "reasoning": "At this exact timestamp, an old man is standing with his hands over the body of a woman lying on a platform. As the old man raises his hands the woman is lifted up in the air. So, the magic trick shown is levitation.",
+    "index": 5
+  },
+  {
+    "timestamp": "00:27:48",
+    "contextTimestamp": "00:26:48 - 00:28:48",
+    "question": "What's the name of the guy shown at this exact timestamp?",
+    "answer": "The name of the guy shown at this exact timestamp is Sandy Parakilas.",
+    "reasoning": "The person in the screen is wearing a blue shirt and talking about the growth tactics. In the previous scene, when this same guy was displayed an introduction card along with the name job they did. On the introduction card it read, \"Sandy Parakilas\". That guy and this guy at this exact timestamp are the same people and with the same shirt. So, the name of the guy shown at this exact timestamp is Sandy Parakilas.",
+    "index": 6
+  },
+  {
+    "timestamp": "00:34:26",
+    "contextTimestamp": "00:32:56 - 00:34:56",
+    "question": "Where did the woman put everyone's phones? Give it's name.",
+    "answer": "The woman put everyone's phones inside a container called Kitchen safe.",
+    "reasoning": "The woman put everyone's phone inside a glass container with a blue lid which she locked. In the previous scene, there was an ad on the tv  that talked about a device called kitchen safe that was used to fight temptation by putting the temptations inside the safe and locking it for a period by setting a timer. The woman and her child watched that ad and talked how they had that in their home. This was the same device as the one the woman used to contain everyone's phones.",
+    "index": 7
+  },
+  {
+    "timestamp": "00:35:31",
+    "contextTimestamp": "00:34:16 - 00:36:16",
+    "question": "Why does Isla have those laboratory glasses on?",
+    "answer": "Isla has those laboratory glasses on to protect her eyes from the pieces of container that she broke to get her phone.",
+    "reasoning": "In this scene, Isla has laboratory glasses on and is trying to get inside the glass container to get a phone out. In the previous scene, Isla had tried to open the container and left to get something. During her attempt to open the container with her bare hands, she did not have her goggles on. Then in the next scene she held a wrench in her hand and hit the container to break the glass. In this scene, she had those laboratory glasses which must mean that she put it on later to prevent the glass pieces in getting inside her eyes.",
+    "index": 8
+  },
+  {
+    "timestamp": "00:40:15",
+    "contextTimestamp": "00:39:30 - 00:41:30",
+    "question": "What is the source of this guy's information and claims?",
+    "answer": "The source of this's guy's information and claim is \"Centers for Disease Control and Prevention\".",
+    "reasoning": "As the guy is speaking about the numbers of suicides of teenagers, a shoe is shown and from the shoe's laces, two graphs are shown on the screen. In those graphs, the records and claims are visualized and under this chart it's written \"Source: Centers for Disease Control and Prevention\". So, this must be the source of the guy's claims.",
+    "index": 9
+  },
+  {
+    "timestamp": "00:49:32",
+    "contextTimestamp": "00:48:32 - 00:50:32",
+    "question": "What do the three guys at this exact timestamp represent?",
+    "answer": "The three guys at this exact timestamp represent the algorithms of social media that decides which videos or posts to push to the users for maximum engagement.",
+    "reasoning": "In this scene, the three guys are talking about how many other guys are behaving like this one guy and what might be the approaches or topics that would interest the user to engage in the content. Then they talk about a person and refer to the person as a user number. Then they send the notification which then engages the guy again. This was the entire goal of those three guys. This shows that those three guys were trying to represent the mechanism and system that decides how to create maximum engagement among the users.",
+    "index": 10
+  },
+  {
+    "timestamp": "01:03:12",
+    "contextTimestamp": "01:02:12 - 01:04:12",
+    "question": "Where are all the posts shown in this scene displayed?",
+    "answer": "All the posts shown in this scene are displayed on the mobile of the boy who's laying on the couch.",
+    "reasoning": "In this scene, we can see multiple posts related to different topics. In the middle of this is a guy laying down on a couch with a phone on his hand. All these posts are shown to represent what the guy laying on the couch is seeing on his phone.",
+    "index": 11
+  },
+  {
+    "timestamp": "01:07:25",
+    "contextTimestamp": "01:06:25 - 01:08:25",
+    "question": "What's the full name of the woman talking in this scene?",
+    "answer": "The full name of the woman talking in this scene is Cynthia M. Wong.",
+    "reasoning": "In this scene, the woman is talking about Myanmar as an example of governments misusing social medias. When she first appeared on the screen, an introduction card appeared that wrote Cynthia M. Wong.",
+    "index": 12
+  },
+  {
+    "timestamp": "00:52:44",
+    "contextTimestamp": "00:51:59 - 00:53:59",
+    "question": "What was Ben doing when the girl called him?",
+    "answer": "Ben was sleeping when the girl called him.",
+    "reasoning": "In this scene, a girl is calling Ben from downstairs telling him that it's time to go. After she got no response, she went upstairs to Ben's room to call him again. In the next scene, when the girl opened the door, she saw Ben sleeping on a bed. So, Ben must have been sleeping when the girl first called him.",
+    "index": 13
+  },
+  {
+    "timestamp": "00:57:12",
+    "contextTimestamp": "00:56:12 - 00:58:12",
+    "question": "What is this woman on the screen an Adjunct Professor of?",
+    "answer": "The woman on the screen is an Adjunct Professor of NYU School of Law.",
+    "reasoning": "The woman on the screen appeared after the old man and is continuing his position. As the woman keeps on talking an introduction card appears with her on the screen and the introduction card reads her name along with her title. In that introduction card, it shows that she is the Adjunct Professor at NYU School of Law.",
+    "index": 14
+  },
+  {
+    "timestamp": "01:01:50",
+    "contextTimestamp": "01:00:50 - 01:02:50",
+    "question": "What was the date of this footage?",
+    "answer": "The date of this footage was 2016-12-04.",
+    "reasoning": "In this scene, a man is laying before the officers on the ground just before getting arrested. The footage seems to be acquired from police officer's body cam. Just before this scene, there was date and time written on the top right part of the video and the date read 2016-12-04. So, this must be the date of the footage.",
+    "index": 15
+  },
+  {
+    "timestamp": "01:02:32",
+    "contextTimestamp": "01:01:32 - 01:03:32",
+    "question": "What is the guy on the screen doing with his hands?",
+    "answer": "The guy on the screen is extending his arms and tilting them towards one side.",
+    "reasoning": "In this scene, a guy has his arms extended and titled towards one side. In this scene, he is talking about how these things referring to social media tilting human behavior. So, he is trying to show this tilt physically.",
+    "index": 16
+  }
+]
