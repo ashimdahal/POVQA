@@ -2,6 +2,7 @@
 /processed_videos/
 /input_data/
 */__pycache__/
+*/*/__pycache__/
 /processed_tvqa/
 /data/
 /out_preprocessed/
