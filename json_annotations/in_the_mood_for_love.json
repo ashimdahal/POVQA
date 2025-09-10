@@ -1,0 +1,114 @@
+[
+  {
+    "timestamp": "00:02:38",
+    "contextTimestamp": "00:01:08 - 00:03:08",
+    "question": "Why did the guy press the button?",
+    "answer": "The guy pressed the button to ask the owners if they have a place for the guy and his wife to stay.",
+    "reasoning": "In this scene, the guy is looking for an empty place for him and his wife. He had previously asked a woman what had just let another woman the empty room. She then suggested him to try asking to the neighbor since the neighbor's son had just gotten married. So, to ask for an available room, the guy pressed the button.",
+    "index": 0
+  },
+  {
+    "timestamp": "00:02:10",
+    "contextTimestamp": "00:01:40 - 00:03:40",
+    "question": "Did the guy find a vacant room for him and his wife?",
+    "answer": "Yes, the guy found a vacant room for him and his wife.",
+    "reasoning": "In this scene, the guy is talking to an old lady asking if she has a vacant room for him and his wife. The woman tells him that she just gave the room to another woman and asked the guy to try the neighbor for any empty room. Then he is seen pressing the door bell of the neighbors and the camera cuts to another scene where many men are helping to move the items. And the same guy is there telling them to be careful against the wall. This must mean that the guy who was asking for the room in the previous scene was the one moving in. So, yes the guy found a vacant room for him and his wife.",
+    "index": 1
+  },
+  {
+    "timestamp": "00:23:32",
+    "contextTimestamp": "00:22:32 - 00:24:32",
+    "question": "What is the woman waiting for?",
+    "answer": "The woman is waiting for the coffee to be ready.",
+    "reasoning": "In this scene, a woman is standing in front of a coffee machine and in the next scene she is seen carrying a cup with a drink inside. In the previous scene, when she was talking to a guy she had told him that she would get a cup of coffee for him. After that she is seen in front of the coffee machine. So, she must have be waiting for the coffee to be ready.",
+    "index": 2
+  },
+  {
+    "timestamp": "00:33:34",
+    "contextTimestamp": "00:32:34 - 00:34:34",
+    "question": "What does the guy's wife like to eat in this restaurant?",
+    "answer": "The guy's wife likes to eat steak in this restaurant.",
+    "reasoning": "In this scene, the girl asks the guy to order something for her as well. When the guy asks why he should order for her she says that she doesn't know what his wife likes. After that the couple are seen eating steak. Since the girl asked the guy to order for her saying that she doesn't know what his wife likes, she is inferring that she would like him to order what his wife likes. Since both of them had steak on their plate the guy's wife should have liked steak for him to order for both of them.",
+    "index": 3
+  },
+  {
+    "timestamp": "00:37:50",
+    "contextTimestamp": "00:37:05 - 00:39:05",
+    "question": "What's the number plate of this taxi?",
+    "answer": "The number plate of this taxi is 4273.",
+    "reasoning": "In this scene, a woman and a man are riding a taxi discussing who should leave first. When the girl told that she would leave first the guy told her that he would leave and then opened the door of the taxi. In that scene, entire backside of the taxi is shown and the number plate in the middle reads \"4273\". So, this must be the number plate of the taxi.",
+    "index": 4
+  },
+  {
+    "timestamp": "00:56:19",
+    "contextTimestamp": "00:55:04 - 00:57:04",
+    "question": "What's the room number of the room the man and the woman are staying in this scene?",
+    "answer": "The man and woman in this scene are staying at room number 2046.",
+    "reasoning": "In this scene, the man and the woman are working on some kind of paper. In the previous scene, the man and the woman were talking at the door of the room about how the guy thought she wouldn't come and so on. In that scene when the girl left, the guy closed the door and on the door the number \"2046\" was written. So, this also must be the same room they are staying in the next scene.",
+    "index": 5
+  },
+  {
+    "timestamp": "01:25:47",
+    "contextTimestamp": "01:24:32 - 01:26:32",
+    "question": "What is the girl at the middle holding in her hands?",
+    "answer": "The girl in the middle is holding a cup of tea in her hands.",
+    "reasoning": "In this scene, the girl in the middle is holding a cup. In the previous scene, the old lady in the white dress had told the girl in the middle to have some tea and had given the same cup. So, in the next scene the girl in the middle is holding the same cup in her hands which means the cup of tea.",
+    "index": 6
+  },
+  {
+    "timestamp": "01:27:30",
+    "contextTimestamp": "01:26:45 - 01:28:45",
+    "question": "Who was the wrapped gift brought for by the guy?",
+    "answer": "The wrapped gift was brought for Mr. Koo.",
+    "reasoning": "In this scene, a guy is carrying a wrapped gift. The guy goes to an apartment looking for Mr. Koo. But the guy inside the room, tells him that Mr. Koo moved long ago. Then before leaving the guy's place the guy with the gift gives the gift to the person inside the apartment. But since the guy went to the apartment intending to meet Mr. Koo he must have brought the gift for Mr. Koo. It couldn't have been for the guy living in that apartment since the guy didn't know the person living there already before.",
+    "index": 7
+  },
+  {
+    "timestamp": "00:30:27",
+    "contextTimestamp": "00:28:57 - 00:30:57",
+    "question": "What's the guy actually getting at?",
+    "answer": "The guy is actually getting at the point that their spouses are cheating on each other with the other's spouses.",
+    "reasoning": "In this scene, the woman and the man are talking about each other's handbag and tie. Coincidentally their spouses also have the same handbag and tie and both of those seem to be only found abroad. Both of them seem to be hinting each other about this coincident and trying to get across the point that their spouses are cheating on each other.",
+    "index": 8
+  },
+  {
+    "timestamp": "00:45:32",
+    "contextTimestamp": "00:44:32 - 00:46:32",
+    "question": "What's inside the blue thermos on the table?",
+    "answer": "Noodles are inside the blue thermos on the table.",
+    "reasoning": "There's a blue thermos along with a couple of bowls on the table situated at the middle of the room. The two people seem to be trapped and the guy suggests the girl to finish some noodles. Then the guy takes the blue thermos and pours noodles in to the bowl. So, noodles are inside the blue thermos on the table.",
+    "index": 9
+  },
+  {
+    "timestamp": "01:06:28",
+    "contextTimestamp": "01:05:13 - 01:07:13",
+    "question": "What was the girl waiting for before the guy appeared?",
+    "answer": "The girl was waiting for the rain to be over.",
+    "reasoning": "In this scene, a woman is taking shelter outside a place with the guy who is drenched in water. When the guy asked the girl if she has been here long, she replies that it's been a while. Since, the only thing that's stopping her is the rain, she is waiting for the rain to be over.",
+    "index": 10
+  },
+  {
+    "timestamp": "01:06:38",
+    "contextTimestamp": "01:05:23 - 01:07:23",
+    "question": "What for did the guy leave asking the girl to wait?",
+    "answer": "The guy left for getting an umbrella asking the girl to wait.",
+    "reasoning": "In this scene, the guy and the girl were taking shelter from the rain. The girl had been waiting for a while but the guy was already drenched in water. The guy then leaves her telling her to wait and comes back with an umbrella and offers it to the girl. So, previously the guy must have left to get an umbrella for the girl.",
+    "index": 11
+  },
+  {
+    "timestamp": "01:30:01",
+    "contextTimestamp": "01:29:31 - 01:31:31",
+    "question": "What does the guy do with the hole?",
+    "answer": "The guy whispers his secret inside the hole and covers it with mud to leave the secret there forever.",
+    "reasoning": "In this scene, the guy is poking the hole and in the next scene he brings his mouth closer to the hole and before leaving covers the hole with mud and grass. In the previous scenes, the guy had a conversation with his friend of how people with secrets found a hole in the mountains, and whispered their secret there and then covered it with mud to leave the secret there forever. The actions of the guys matches the description that took place in the conversation. So, the guy is using the hole to whisper and leave the secret.",
+    "index": 12
+  },
+  {
+    "timestamp": "00:44:22",
+    "contextTimestamp": "00:43:07 - 00:45:07",
+    "question": "What's the time right now in this scene?",
+    "answer": "It's almost 11:45 pm in this scene.",
+    "reasoning": "In this scene, a guy is trying to write something with a cigarette in his other hand. In the previous scene, a clock was shown which has time of almost 11:45. The atmosphere is dark and the lights are on, so it must be night. So, the time in this scene is almost 11:45 pm.",
+    "index": 13
+  }
+]
