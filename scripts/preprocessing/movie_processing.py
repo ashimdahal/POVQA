@@ -74,6 +74,7 @@ try:
     )
 except Exception:
     print("Warning: Could not import from video_preprocessing.py. Using a fallback simple average.")
+    sys.exit()
     def blend_blur_with_last_frame(chunk: List[np.ndarray]) -> Optional[np.ndarray]:
         if not chunk:
             return None
@@ -81,6 +82,13 @@ except Exception:
         return np.clip(arr, 0, 255).astype(np.uint8)
 
 # ---------------- helpers ----------------
+
+ALL_METHODS = [
+    'blend_blur_with_last_frame',
+    'weighted_average',
+    'weighted_average_exponential',
+    'weighted_average_ramp',
+]
 
 def ensure_dir(p: Path):
     p.mkdir(parents=True, exist_ok=True)
@@ -422,7 +430,7 @@ def process_single_movie(movie_dir: Path, output_root: Path, fps: float, chunk_s
 
     # metadata
     segments = assemble_text_centric_metadata(chunk_meta, subs)
-    (out_dir / 'metadata_text_centric.json').write_text(json.dumps(segments, indent=2, ensure_ascii=False), encoding='utf-8')
+    (out_dir / f'metadata_text_centric_{avg_method}.json').write_text(json.dumps(segments, indent=2, ensure_ascii=False), encoding='utf-8')
 
     # key frames (use external annotations dir)
     key_ok = 0
@@ -504,8 +512,13 @@ def main():
     ap.add_argument('--skip_frames', type=int, default=0)
     ap.add_argument('--width', type=int, default=224)
     ap.add_argument('--height', type=int, default=224)
-    ap.add_argument('--avg_method', type=str, default='blend_blur_with_last_frame',
-                    choices=['blend_blur_with_last_frame','weighted_average','weighted_average_exponential','weighted_average_ramp'])
+
+    ap.add_argument(
+        '--avg_method',
+        type=str,
+        default='blend_blur_with_last_frame',
+        choices=['blend_blur_with_last_frame','weighted_average','weighted_average_exponential','weighted_average_ramp','all']
+    )
 
     ap.add_argument('--force_generate_subs', action='store_true')
     ap.add_argument('--whisper_model', type=str, default='base')
@@ -517,6 +530,7 @@ def main():
     ap.add_argument('--limit', type=int, default=None)
 
     args = ap.parse_args()
+
 
     data_dir = Path(args.data_dir)
     out_root = Path(args.output_dir)
@@ -533,19 +547,25 @@ def main():
 
     ann_dir = Path(args.annotations_dir) if args.annotations_dir else None
 
-    worker_inputs = [
-        (m, out_root,
-         args.fps, args.chunk_size, args.skip_frames,
-         args.width, args.height,
-         args.avg_method,
-         args.force_generate_subs,
-         args.whisper_model,
-         250,
-         args.chunk_seconds,
-         not args.no_key_frames,
-         ann_dir)
-        for m in movies
-    ]
+    methods_to_run = ALL_METHODS if args.avg_method == 'all' else [args.avg_method]
+
+    worker_inputs = []
+    for mi, method in enumerate(methods_to_run):
+        # only save KEY frames once (first method) to avoid duplicates
+        save_keys = (mi == 0) and (not args.no_key_frames)
+        worker_inputs.extend([
+            (m, out_root,
+             args.fps, args.chunk_size, args.skip_frames,
+             args.width, args.height,
+             method,                     # <- this method
+             args.force_generate_subs,
+             args.whisper_model,
+             250,
+             args.chunk_seconds,
+             save_keys,                  # <- only first method extracts KEY frames
+             Path(args.annotations_dir) if args.annotations_dir else None)
+            for m in movies
+        ])
 
     results = []
     if args.workers == 1:
