@@ -104,6 +104,7 @@ import os, re, json, math, argparse, warnings
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from collections import Counter
+from tqdm import tqdm
 
 import torch
 from PIL import Image
@@ -416,37 +417,24 @@ def _segments_near_time(segments, t, k=1, radius=2.0):
             picked.append((s,e,txt))
     return picked
 
-TEMPLATE_INTERLEAVED_HEADER = (
-    "You are given an interleaved sequence of movie frames with their closest subtitle segments.
-"
-    "Use only this context to answer. Cite frames/segments in Reasoning.
+TEMPLATE_INTERLEAVED_HEADER = """\
+You are given an interleaved sequence of movie frames with their closest subtitle segments.
+Use only this context to answer. Cite frames/segments in Reasoning.
 
-"
-    "{KEYFRAME_HINT}"
-    "QUESTION:
+{KEYFRAME_HINT}QUESTION:
 {QUESTION}
 
-"
-    "OUTPUT FORMAT (exactly two lines):
-"
-    "Reasoning: <one or two short sentences grounded to frames/segments>
-"
-    "Final Answer: <≤ 6 words, no punctuation>
+OUTPUT FORMAT (exactly two lines):
+Reasoning: <Give your brief reasoning for choosing the answer, build logic from the text and images>
+Final Answer: <Give the short succint answer directly addressing the question>
 
-"
-    "STRICT RULES:
-"
-    "1) Grounding: reference specific frame indices and/or segment time ranges.
-"
-    "2) Visual first for actions/objects; text first for dialogue facts.
-"
-    "3) No outside knowledge.
-"
-    "4) Be concise; no punctuation in Final Answer.
-"
-    "5) If insufficient, say so briefly in Reasoning and answer succinctly.
-"
-)
+STRICT RULES:
+1) Grounding: reference specific frame indices and/or segment time ranges.
+2) Visual first for actions/objects; text first for dialogue facts.
+3) No outside knowledge.
+4) Be concise; no punctuation in Final Answer.
+5) If insufficient, say so briefly in Reasoning and answer succinctly.
+"""
 
 TEMPLATE_VISION_TEXT_TWO_STEP = (
     "You are given a short sequence of movie frames and the aligned subtitle segments.\n"
@@ -483,8 +471,7 @@ def build_two_step_messages_with_subs(
         .replace("{SUBTITLE_BLOCK}", sub_block)
         .replace("{FRAME_LIST}", frame_list)
         .replace("{QUESTION}", question)
-        .replace("{KEYFRAME_HINT}", (keyframe_hint_text + "
-") if keyframe_hint_text else "")
+        .replace("{KEYFRAME_HINT}", (keyframe_hint_text + "\n") if keyframe_hint_text else "")
     )
     content.append({"type": "text", "text": prompt_text})
     return [{"role": "user", "content": content}]
@@ -506,8 +493,7 @@ def build_two_step_messages_interleaved(
     header = (
         TEMPLATE_INTERLEAVED_HEADER
         .replace("{QUESTION}", question)
-        .replace("{KEYFRAME_HINT}", (keyframe_hint_text + "
-") if keyframe_hint_text else "")
+        .replace("{KEYFRAME_HINT}", (keyframe_hint_text + "\n") if keyframe_hint_text else "")
     )
     content.append({"type": "text", "text": header})
 
@@ -522,13 +508,12 @@ def build_two_step_messages_interleaved(
                 lines.append(f"Segment ({s:.2f}s–{e:.2f}s): {txt}")
         else:
             lines.append("[No nearby subtitle segment]")
-        content.append({"type": "text", "text": "
-".join(lines)})
+        content.append({"type": "text", "text": "\n".join(lines)})
 
     return [{"role": "user", "content": content}]
 
 @torch.inference_mode()
-def generate_two_step(model, processor, messages, max_new_tokens=64, temperature=0.0, do_sample=False):
+def generate_two_step(model, processor, messages, max_new_tokens=256, temperature=0.0, do_sample=False):
     text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     imgs = []
     for item in messages[0]["content"]:
@@ -588,6 +573,8 @@ def main(args):
     fout = open(out_path, "w", encoding="utf-8")
 
     ems=[]; f1s=[]; b1s=[]; b4bps=[]; rls=[]; ecs=[]
+    rls_reasoning = []
+    ecs_reasoning = []
     processed = 0
 
     ann_files = sorted(ann_dir.glob("*.json"))
@@ -611,7 +598,7 @@ def main(args):
         with open(ann_file, "r", encoding="utf-8") as f:
             items = json.load(f)
 
-        for it in items:
+        for it in tqdm(items, desc = f"Processing {movie}"):
             try:
                 q = it["question"].strip()
                 gold = it["answer"].strip()
@@ -693,11 +680,6 @@ def main(args):
                         do_sample=args.do_sample
                     )
 
-                        model, processor, messages,
-                        max_new_tokens=args.max_new_tokens,
-                        temperature=args.temperature,
-                        do_sample=args.do_sample
-                    )
                     pred_reason, pred_answer = parse_two_step_output(raw)
 
                 # --- Metrics on Final Answer ---
@@ -709,12 +691,21 @@ def main(args):
 
                 ems.append(emv); f1s.append(f1v); b1s.append(b1); b4bps.append(b4bp); rls.append(rl); ecs.append(ec)
 
+                gold_reason = ""
+                if "reasoning" in it and it["reasoning"]:
+                    gold_reason = it["reasoning"].strip()
+                    rl_r = rouge_l(pred_reason, gold_reason)
+                    ec_r = embsim.score(pred_reason, gold_reason)
+                    rls_reasoning.append(rl_r)
+                    ecs_reasoning.append(ec_r)
+
                 rec = {
                     "movie": movie,
                     "index": idx,
                     "timestamp": it["timestamp"],
                     "contextTimestamp": it["contextTimestamp"],
                     "question": q,
+                    "gold_reasoning": gold_reason,
                     "gold_answer": gold,
                     "pred_reasoning": pred_reason,
                     "pred_answer": pred_answer,
@@ -726,6 +717,7 @@ def main(args):
                         {"start": s, "end": e, "text": t} for (s,e,t) in segs
                     ],
                 }
+
                 fout.write(json.dumps(rec) + "\n")
                 processed += 1
                 if args.limit and processed >= args.limit:
@@ -754,6 +746,8 @@ def main(args):
             "BLEU4_BP": avg(b4bps),
             "ROUGE_L": avg(rls),
             "EmbedCos": avg(ecs),
+            "ROUGE_L_Reasoning": avg(rls_reasoning),
+            "EmbedCos_Reasoning": avg(ecs_reasoning)
         },
         "output_file": str(out_path)
     }
@@ -774,7 +768,7 @@ if __name__ == "__main__":
                     help="One of {blend_blur_with_last_frame, weighted_average, weighted_average_exponential, weighted_average_ramp} or your custom.")
     ap.add_argument("--max_frames", type=int, default=3, help="If pooling=method, how many frames to pass (1 ⇒ blur-like).")
     ap.add_argument("--max_segments", type=int, default=8, help="Max subtitle segments to include from the window.")
-    ap.add_argument("--max_new_tokens", type=int, default=64)
+    ap.add_argument("--max_new_tokens", type=int, default=256)
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--do_sample", action="store_true")
     ap.add_argument("--embed_model", type=str, default="sentence-transformers/all-mpnet-base-v2")
