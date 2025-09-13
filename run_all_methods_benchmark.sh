@@ -61,7 +61,7 @@ do
     echo ""
 
     # The main command to execute your Python script with the correct parameters
-    python run_movie_vqa_two_step_with_subs.py \
+    python ./scripts/chain_of_thoughts/generate_synthetic_movies.py \
       --root_dir "$ROOT_DIR" \
       --output_file "$OUTPUT_FILE" \
       --model_name_or_path "$MODEL_NAME" \
