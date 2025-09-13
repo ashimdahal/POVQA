@@ -1,5 +1,5 @@
 """
-run_movie_vqa_two_step_with_subs.py
+generate_synthetic_movies.py
 
 Vision+Text (subtitles) two-step LVLM baseline for your movie VQA dataset.
 It constructs prompts from **frames + aligned subtitle segments** and enforces a
@@ -101,6 +101,7 @@ Key arguments
 """
 
 import os, re, json, math, argparse, warnings
+import random
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from collections import Counter
@@ -110,6 +111,7 @@ import torch
 from PIL import Image
 from transformers import AutoProcessor, BitsAndBytesConfig
 from transformers import Qwen2_5_VLForConditionalGeneration
+from peft import PeftModel 
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -231,19 +233,31 @@ class EmbSim:
 # Model loader (Qwen-VL)
 # =======================
 
-def load_qwen_vl(model_name_or_path: str, use_4bit=True, device_map="auto"):
+def load_qwen_vl(model_name_or_path: str, use_4bit=True, device_map="auto",
+                 peft_adapter_path: str | None = None, peft_merge: bool = False):
     print(f"Loading {model_name_or_path} (4bit={use_4bit}) ...")
     quantization_config = None
     torch_dtype = torch.bfloat16 if (torch.cuda.is_available() and torch.cuda.is_bf16_supported()) else torch.float16
     if use_4bit:
         quantization_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch_dtype)
 
-    processor = AutoProcessor.from_pretrained(model_name_or_path, trust_remote_code=True)
+    # Prefer adapter’s processor (tokenizer/chat template) if provided
+    proc_src = peft_adapter_path or model_name_or_path
+    processor = AutoProcessor.from_pretrained(proc_src, trust_remote_code=True)
+
     kwargs = dict(low_cpu_mem_usage=True, trust_remote_code=True, device_map=device_map)
     if quantization_config: kwargs["quantization_config"] = quantization_config
     else: kwargs["torch_dtype"] = torch_dtype
 
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model_name_or_path, **kwargs)
+
+    if peft_adapter_path:
+        print(f"[PEFT] Attaching adapter: {peft_adapter_path}")
+        model = PeftModel.from_pretrained(model, peft_adapter_path)
+        if peft_merge:
+            print("[PEFT] merge_and_unload()")
+            model = model.merge_and_unload()
+
     model.eval()
 
     tok = getattr(processor, "tokenizer", None)
@@ -565,7 +579,13 @@ def main(args):
     ann_dir = root / "annotations"
     out_root = root / "out_preprocessed"
 
-    model, processor = load_qwen_vl(args.model_name_or_path, use_4bit=args.use_4bit, device_map="auto")
+    model, processor = load_qwen_vl(
+        args.model_name_or_path,
+        use_4bit=args.use_4bit,
+        device_map="auto",
+        peft_adapter_path=args.peft_adapter,
+        peft_merge=args.peft_merge,
+    )
     embsim = EmbSim(args.embed_model)
 
     out_path = Path(args.output_file)
@@ -577,7 +597,20 @@ def main(args):
     ecs_reasoning = []
     processed = 0
 
-    ann_files = sorted(ann_dir.glob("*.json"))
+    ann_files_all = sorted(ann_dir.glob("*.json"))
+    rng = random.Random(args.seed)
+    ann_files_shuf = ann_files_all[:]
+    rng.shuffle(ann_files_shuf)
+    cut = int(len(ann_files_shuf) * args.split_ratio)
+
+    if args.split == "train":
+        ann_files = ann_files_shuf[:cut]
+    elif args.split == "eval":
+        ann_files = ann_files_shuf[cut:]
+    else:
+        ann_files = ann_files_all
+
+    print(f"[Info] Using {args.split.upper()} split: {len(ann_files)} movies")
     print(f"[Info] Found {len(ann_files)} movies in annotations/")
     for ann_file in ann_files:
         movie = ann_file.stem
@@ -786,6 +819,17 @@ if __name__ == "__main__":
                     help="Number of subtitle segments to attach to each frame when interleaving.")
     ap.add_argument("--seg_radius", type=float, default=2.0,
                     help="Max seconds from a frame time to pull a non-overlapping subtitle segment.")
+
+    ap.add_argument("--peft_adapter", type=str, default=None,
+                    help="Path to a PEFT/LoRA adapter dir (e.g., models/sft-qwen7b-interleaved-16f/<method>)")
+    ap.add_argument("--peft_merge", action="store_true",
+                    help="Merge LoRA weights into the base at load time")
+
+    ap.add_argument("--split", type=str, choices=["all","train","eval"], default="all",
+                    help="Movie-level split: all/train/eval (same deterministic split as training)")
+    ap.add_argument("--split_ratio", type=float, default=0.9,
+                    help="Fraction of movies for training part of the split (seeded)")
+    ap.add_argument("--seed", type=int, default=42, help="Seed for deterministic movie split")
     args = ap.parse_args()
 
     main(args)
