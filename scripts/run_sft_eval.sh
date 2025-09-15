@@ -18,7 +18,6 @@ METHODS=(
   "weighted_average"
   "weighted_average_exponential"
   "weighted_average_ramp"
-  "weighted_average_whatever5"   # <-- replace with your 5th method name
 )
 
 # LoRA adapters root (each subdir is one adapter)
