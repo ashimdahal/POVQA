@@ -62,8 +62,38 @@ _METRIC_ALIASES = {
     "embed cosine reasoning": "Embed Cosine (Reasoning)",
     "embedding_cosine_reasoning": "Embed Cosine (Reasoning)",
     "embedcosine reasoning": "Embed Cosine (Reasoning)",
+
+    # NEW: your exact keys after normalization
+    "embedcos": "Embed Cosine",                       # from "EmbedCos"
+    "embedcos reasoning": "Embed Cosine (Reasoning)", # from "EmbedCos_Reasoning"
 }
 
+# ---- Fancy layout constants (exact paper format) ----
+ORDER_PRETTY = ["Blend+Blur+Last", "Weighted Avg", "Weighted Avg (Exp)", "Weighted Avg (Ramp)"]
+ABBREV_BY_PRETTY = {
+    "Blend+Blur+Last": "BBLF",
+    "Weighted Avg": "WA",
+    "Weighted Avg (Exp)": "WAE",
+    "Weighted Avg (Ramp)": "WAR",
+}
+FRIENDLY_GROUP_NAME = {
+    "Blend+Blur+Last": "Blend Blur With Last Frame",
+    "Weighted Avg": "Weighted Average",
+    "Weighted Avg (Exp)": "Weighted Average (Exp)",
+    "Weighted Avg (Ramp)": "Weighted Average (Ramp)",
+}
+FANCY_METRICS_ANS = ["F1", "BLEU-1", "BLEU-4 (BP)", "ROUGE-L", "Embed Cosine"]
+FANCY_METRICS_RSN = ["ROUGE-L (Reasoning)", "Embed Cosine (Reasoning)"]
+# how to *display* those metric labels in the table
+FANCY_METRIC_LABEL = {
+    "F1": "F1",
+    "BLEU-1": "BLEU-1",
+    "BLEU-4 (BP)": "BLEU-4 (BP)",
+    "ROUGE-L": "ROUGE-L",
+    "Embed Cosine": "Embed Cosine",
+    "ROUGE-L (Reasoning)": "ROUGE-L-R",
+    "Embed Cosine (Reasoning)": "Embed Cosine-R",
+}
 def prettify_metric(key: str) -> str:
     if not key:
         return "?"
@@ -120,19 +150,27 @@ def wrap_header(title: str, max_chars: int = 16) -> str:
 
 def detect_roots(runs_dir: Path) -> Tuple[Optional[Path], Optional[Path]]:
     """
-    Find top-level dirs whose *prefix before first '-'* is 'base' or 'sft'.
+    Find top-level dirs whose *prefix before first '-'* is 'base' or an SFT-style prefix ('sft','dpo').
     Falls back to literal 'base'/'sft'.
     """
     base_root = None
     sft_root = None
+    sft_prefixes = {"sft", "dpo"}  # <— add 'dpo' here (keep adding if you use PPO/RLAIF later)
+
     for p in runs_dir.iterdir():
-        if not p.is_dir(): continue
+        if not p.is_dir():
+            continue
         name = p.name
         prefix = name.split("-", 1)[0] if "-" in name else name
-        if prefix == "base" and base_root is None: base_root = p
-        elif prefix == "sft" and sft_root is None: sft_root = p
-    if base_root is None and (runs_dir / "base").is_dir(): base_root = runs_dir / "base"
-    if sft_root is None and (runs_dir / "sft").is_dir(): sft_root = runs_dir / "sft"
+        if prefix == "base" and base_root is None:
+            base_root = p
+        elif prefix in sft_prefixes and sft_root is None:
+            sft_root = p
+
+    if base_root is None and (runs_dir / "base").is_dir():
+        base_root = runs_dir / "base"
+    if sft_root is None and (runs_dir / "sft").is_dir():
+        sft_root = runs_dir / "sft"
     return base_root, sft_root
 
 
@@ -279,6 +317,123 @@ def _filter_metrics(df: pd.DataFrame, reasoning: Optional[bool]) -> pd.DataFrame
             cols.append((e, m))
     return df.loc[:, cols]
 
+
+def latex_table_sft_fancy(df: pd.DataFrame, caption: str, label: str,
+                          precision: int = 3, shade_diag: bool = True) -> str:
+    """
+    Single-column 'fancy' layout matching the user's journal style exactly:
+    - \begin{table}[ht]
+    - spacing lines (tabcolsep=6pt, arraystretch=1.2)
+    - header band "Model Trained On" + cmidrule
+    - columns: BBLF, WA, WAE, WAR (only those present)
+    - grouped by 'Evaluated on: ...'
+    - first 5 metrics, addlinespace, then 2 reasoning metrics
+    - diagonal cells shaded (gray!15), row-wise best in bold
+    """
+    if df.empty:
+        return "% No SFT cross-eval results found."
+
+    # Determine which train methods (rows/columns) we actually have, in the fixed order.
+    train_pretty_all = [tm for tm in ORDER_PRETTY if tm in list(df.index)]
+    if not train_pretty_all:
+        # fall back to whatever is present
+        train_pretty_all = list(df.index)
+
+    # Determine which eval methods are present (columns level 0), in the fixed order.
+    eval_methods_present = []
+    present_evals = list(dict.fromkeys([c[0] for c in df.columns]))
+    for e in ORDER_PRETTY:
+        if e in present_evals:
+            eval_methods_present.append(e)
+    for e in present_evals:
+        if e not in eval_methods_present:
+            eval_methods_present.append(e)
+
+    # Helper to fetch a value safely
+    def get_val(train_pretty: str, eval_pretty: str, metric_key: str):
+        if (eval_pretty, metric_key) not in df.columns or train_pretty not in df.index:
+            return float("nan")
+        return pd.to_numeric(df.loc[train_pretty, (eval_pretty, metric_key)], errors="coerce")
+
+    # Build header based on how many training columns we keep
+    n_cols = len(train_pretty_all)
+    colspec = "l" + "c" * n_cols
+
+    # Precompute abbreviations for column headers
+    col_abbrevs = [ABBREV_BY_PRETTY.get(tp, tp) for tp in train_pretty_all]
+
+    lines = []
+    lines.append("\\begin{table}[ht]")
+    lines.append("\\centering")
+    # lines.append("\\small")  # keep commented to match provided example
+    lines.append("\\setlength{\\tabcolsep}{6pt}")
+    lines.append("\\renewcommand{\\arraystretch}{1.2}")
+    lines.append(f"\\caption{{{latex_escape(caption)}}}")
+    lines.append(f"\\label{{{latex_escape(label)}}}")
+    lines.append(f"\\begin{{tabular}}{{{colspec}}}")
+    lines.append("\\toprule")
+    # Header band
+    if n_cols >= 1:
+        lines.append(f"& \\multicolumn{{{n_cols}}}{{c}}{{\\textbf{{Model Trained On}}}} \\\\")
+        lines.append(f"\\cmidrule(l){{2-{n_cols+1}}}")
+    # Column header row
+    hdr = " & ".join([f"\\makecell[ct]{{{latex_escape(ab)}}}" for ab in col_abbrevs])
+    lines.append(f"\\textbf{{Metric}} & {hdr} \\\\")
+    lines.append("\\midrule")
+    lines.append("")  # spacer
+
+    # Emit groups per eval method
+    for e in eval_methods_present:
+        friendly = FRIENDLY_GROUP_NAME.get(e, e)
+        lines.append(f"\\multicolumn{{{n_cols+1}}}{{l}}{{\\textit{{Evaluated on: {latex_escape(friendly)}}}}} \\\\")
+        lines.append("\\midrule")
+
+        # 5 answer metrics
+        for met in FANCY_METRICS_ANS:
+            vals = [get_val(tp, e, met) for tp in train_pretty_all]
+            svals = pd.Series(vals)
+            row_max = svals.max(skipna=True)
+            row_cells = []
+            for tp, v in zip(train_pretty_all, vals):
+                s = fmt_val(v, precision)
+                if s is None:
+                    cell = "—"
+                else:
+                    s_b = f"\\textbf{{{s}}}" if pd.notnull(v) and (v >= row_max - 1e-12) else s
+                    if shade_diag and (tp == e):
+                        cell = f"\\cellcolor{{gray!15}} {s_b}"
+                    else:
+                        cell = s_b
+                row_cells.append(cell)
+            lines.append(f"{FANCY_METRIC_LABEL.get(met, latex_escape(met))} & " + " & ".join(row_cells) + " \\\\")
+
+        lines.append("\\addlinespace[0.2em]")
+
+        # 2 reasoning metrics
+        for met in FANCY_METRICS_RSN:
+            vals = [get_val(tp, e, met) for tp in train_pretty_all]
+            svals = pd.Series(vals)
+            row_max = svals.max(skipna=True)
+            row_cells = []
+            for tp, v in zip(train_pretty_all, vals):
+                s = fmt_val(v, precision)
+                if s is None:
+                    cell = "—"
+                else:
+                    s_b = f"\\textbf{{{s}}}" if pd.notnull(v) and (v >= row_max - 1e-12) else s
+                    if shade_diag and (tp == e):
+                        cell = f"\\cellcolor{{gray!15}} {s_b}"
+                    else:
+                        cell = s_b
+                row_cells.append(cell)
+            lines.append(f"{FANCY_METRIC_LABEL.get(met, latex_escape(met))} & " + " & ".join(row_cells) + " \\\\")
+
+        # End of a group; leave the \midrule lines exactly as per example
+        # (the next group starts with its own \midrule)
+    lines.append("\\bottomrule")
+    lines.append("\\end{tabular}")
+    lines.append("\\end{table}")
+    return "\n".join(lines)
 
 def latex_table_sft_wide(df: pd.DataFrame, caption: str, label: str,
                          precision: int = 3, font_size: str = "small",
@@ -450,12 +605,13 @@ def main():
                     help="LaTeX label for the SFT table.")
     ap.add_argument("--out_base", type=str, default="", help="Optional path to save the base table .tex.")
     ap.add_argument("--out_sft", type=str, default="", help="Optional path to save the SFT table .tex.")
-    ap.add_argument("--sft_layout", type=str, choices=["tall", "wide"], default="tall",
-                    help="Layout for the SFT table.")
     ap.add_argument("--split_reasoning", action="store_true",
                     help="Emit two SFT tables: one for answer metrics, one for reasoning metrics.")
     ap.add_argument("--landscape_sft", action="store_true",
-                    help="Render SFT table as sidewaystable* (requires \\usepackage{rotating}).")
+                        help="Render SFT table as sidewaystable* (requires \\usepackage{rotating}).")
+    # argparse choices
+    ap.add_argument("--sft_layout", type=str, choices=["tall", "wide", "fancy"], default="tall",
+                    help="Layout for the SFT table.")
 
     args = ap.parse_args()
     runs_dir = Path(args.runs_dir)
@@ -484,6 +640,14 @@ def main():
                 return latex_table_sft_wide(df_part, args.caption_sft, args.label_sft + lbl_suffix,
                                             precision=args.precision, font_size=args.font_size,
                                             shade_diag=True, resize=resize, landscape=args.landscape_sft)
+            elif args.sft_layout == "fancy":
+                return latex_table_sft_fancy(
+                    df_part,
+                    caption=args.caption_sft,
+                    label=args.label_sft + lbl_suffix,
+                    precision=args.precision,
+                    shade_diag=True,
+                )
             else:
                 return latex_table_sft_tall(df_part, args.caption_sft, args.label_sft + lbl_suffix,
                                             precision=args.precision, font_size=args.font_size,
