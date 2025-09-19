@@ -9,7 +9,7 @@ import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 
-from video_preprocessing import (
+from scripts.preprocessing.video_preprocessing import (
     # Frame averaging functions
     weighted_average,
     weighted_average_exponential,
