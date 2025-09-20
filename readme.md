@@ -283,7 +283,7 @@ If you find this repo helpful, please cite:
 
 ```
 @inproceedings{povqa2025,
-  title     = {POVQA: Preference-Optimized Video QA with Temporal Pooling and Rationale Supervision},
+  title     = {POVQA: Preference-Optimized Video Question Answering with Rationales for Data Efficiency},
   author    = {blind},
   booktitle = {unpublished},
   year      = {2026},
