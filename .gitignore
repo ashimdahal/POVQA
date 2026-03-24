@@ -1,8 +1,29 @@
-/input_videos/
-/processed_videos/
-/input_data/
+# Keep git status focused on runnable code and scripts for now.
+/*
+!/.gitignore
+!/scripts/
+!/scripts/**
+!/run*.sh
+!/runners/
+!/runners/**
+
+# Data and generated artifacts
+input_videos/
+processed_videos/
+input_data/
+processed_tvqa/
+data/
+out_preprocessed/
+models/
+runs/
+motion_blurred_frames/
+out_preprocessed.tar
+dpo_cross_eval.tex
+dummy_alice.txt
+
+# Python/cache noise
 */__pycache__/
+*/*.tex
+*/*/*.tex
 */*/__pycache__/
-/processed_tvqa/
-/data/
-/out_preprocessed/
+*.py[cod]
