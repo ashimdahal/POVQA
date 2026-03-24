@@ -11,6 +11,7 @@ def prettify_method(name: str) -> str:
     name = name.replace("blend blur with last frame", "Blend+Blur+Last")
     name = name.replace("weighted average exponential", "Weighted Avg (Exp)")
     name = name.replace("weighted average ramp", "Weighted Avg (Ramp)")
+    name = name.replace("weighted average whatever5", "Weighted Avg (Var5)")
     name = name.replace("weighted average", "Weighted Avg")
     name = " ".join(name.split())
     return " ".join([w.capitalize() if w.isalpha() else w for w in name.split(" ")])
