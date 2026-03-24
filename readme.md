@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://arxiv.org/abs/2510.01009"><strong>Paper</strong></a> |
+  <a href="https://huggingface.co/datasets/ashimdahal/povqa-preprocessed"><strong>Preprocessed Dataset</strong></a> |
   <a href="https://povqa.github.io"><strong>Project Website</strong></a>
 </p>
 
