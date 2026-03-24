@@ -1,5 +1,12 @@
 # POVQA: Preference-Optimized Video Question Answering (ReasonVQA & TVQA)
 
+> Accepted to the MAR Workshop at CVPR 2026.
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2510.01009"><strong>Paper</strong></a> |
+  <a href="https://povqa.github.io"><strong>Project Website</strong></a>
+</p>
+
 This repository contains the code and runnable scripts for **POVQA**, a preference-optimized framework for video QA that combines **temporal pooling** with **rationale supervision**. The repo is set up for fully reproducible runs of:
 
 * **Supervised Fine-Tuning (SFT)** with QLoRA on interleaved frames + subtitles
@@ -10,7 +17,7 @@ The scripts are **self-contained**: they discover adapters on disk, mirror train
 
 ---
 
-## tl;dr for Reviewers
+## Overview
 
 * **Backbone**: `Qwen/Qwen2.5-VL-7B-Instruct` in **4-bit** (QLoRA)
 * **Temporal evidence**: 4 pooling strategies
@@ -266,7 +273,7 @@ Every generation script writes:
 
 * **Cross-method tables** (base vs SFT vs DPO) under `runs/*_59f_plus_keyframe/…`
 * **TVQA sanity grid** (train × eval methods) printed at the end of `run_tvqa_eval.sh`
-* **Qualitative figures** built by `visualize/qualitative*.py` that include options table **inside the human reference section** (space-saving layout reviewers requested)
+* **Qualitative figures** built by `visualize/qualitative*.py` that include an options table **inside the human reference section** for a more compact layout
 
 ---
 
@@ -279,18 +286,21 @@ Every generation script writes:
 
 ## Citation
 
-If you find this repo helpful, please cite:
+If you find this repo helpful, please cite the **arXiv version** for now. We can update this section once the workshop/proceedings citation is available.
 
 ```
-@inproceedings{povqa2025,
-  title     = {POVQA: Preference-Optimized Video Question Answering with Rationales for Data Efficiency},
-  author    = {blind},
-  booktitle = {unpublished},
-  year      = {2026},
+@article{dahal2025povqa,
+  title   = {POVQA: Preference-Optimized Video Question Answering with Rationales for Data Efficiency},
+  author  = {Dahal, Ashim and Ghimire, Ankit and Murad, Saydul Akbar and Rahimi, Nick},
+  journal = {arXiv preprint arXiv:2510.01009},
+  year    = {2025},
+  url     = {https://arxiv.org/abs/2510.01009}
 }
 ```
 
-*(Preprint & final bibtex to be updated upon camera-ready.)*
+Paper: https://arxiv.org/abs/2510.01009
+
+Project website: https://povqa.github.io
 
 ---
 
