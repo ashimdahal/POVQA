@@ -1,5 +1,5 @@
 """
-run_movie_vqa_two_step_with_subs.py
+generate_synthetic_movies.py
 
 Vision+Text (subtitles) two-step LVLM baseline for your movie VQA dataset.
 It constructs prompts from **frames + aligned subtitle segments** and enforces a
@@ -101,14 +101,17 @@ Key arguments
 """
 
 import os, re, json, math, argparse, warnings
+import random
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from collections import Counter
+from tqdm import tqdm
 
 import torch
 from PIL import Image
 from transformers import AutoProcessor, BitsAndBytesConfig
 from transformers import Qwen2_5_VLForConditionalGeneration
+from peft import PeftModel 
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -230,19 +233,31 @@ class EmbSim:
 # Model loader (Qwen-VL)
 # =======================
 
-def load_qwen_vl(model_name_or_path: str, use_4bit=True, device_map="auto"):
+def load_qwen_vl(model_name_or_path: str, use_4bit=True, device_map="auto",
+                 peft_adapter_path: str | None = None, peft_merge: bool = False):
     print(f"Loading {model_name_or_path} (4bit={use_4bit}) ...")
     quantization_config = None
     torch_dtype = torch.bfloat16 if (torch.cuda.is_available() and torch.cuda.is_bf16_supported()) else torch.float16
     if use_4bit:
         quantization_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch_dtype)
 
-    processor = AutoProcessor.from_pretrained(model_name_or_path, trust_remote_code=True)
+    # Prefer adapter’s processor (tokenizer/chat template) if provided
+    proc_src = peft_adapter_path or model_name_or_path
+    processor = AutoProcessor.from_pretrained(proc_src, trust_remote_code=True)
+
     kwargs = dict(low_cpu_mem_usage=True, trust_remote_code=True, device_map=device_map)
     if quantization_config: kwargs["quantization_config"] = quantization_config
     else: kwargs["torch_dtype"] = torch_dtype
 
     model = Qwen2_5_VLForConditionalGeneration.from_pretrained(model_name_or_path, **kwargs)
+
+    if peft_adapter_path:
+        print(f"[PEFT] Attaching adapter: {peft_adapter_path}")
+        model = PeftModel.from_pretrained(model, peft_adapter_path)
+        if peft_merge:
+            print("[PEFT] merge_and_unload()")
+            model = model.merge_and_unload()
+
     model.eval()
 
     tok = getattr(processor, "tokenizer", None)
@@ -416,37 +431,24 @@ def _segments_near_time(segments, t, k=1, radius=2.0):
             picked.append((s,e,txt))
     return picked
 
-TEMPLATE_INTERLEAVED_HEADER = (
-    "You are given an interleaved sequence of movie frames with their closest subtitle segments.
-"
-    "Use only this context to answer. Cite frames/segments in Reasoning.
+TEMPLATE_INTERLEAVED_HEADER = """\
+You are given an interleaved sequence of movie frames with their closest subtitle segments.
+Use only this context to answer. Cite frames/segments in Reasoning.
 
-"
-    "{KEYFRAME_HINT}"
-    "QUESTION:
+{KEYFRAME_HINT}QUESTION:
 {QUESTION}
 
-"
-    "OUTPUT FORMAT (exactly two lines):
-"
-    "Reasoning: <one or two short sentences grounded to frames/segments>
-"
-    "Final Answer: <≤ 6 words, no punctuation>
+OUTPUT FORMAT (exactly two lines):
+Reasoning: <Give your brief reasoning for choosing the answer, build logic from the text and images>
+Final Answer: <Give the short succint answer directly addressing the question>
 
-"
-    "STRICT RULES:
-"
-    "1) Grounding: reference specific frame indices and/or segment time ranges.
-"
-    "2) Visual first for actions/objects; text first for dialogue facts.
-"
-    "3) No outside knowledge.
-"
-    "4) Be concise; no punctuation in Final Answer.
-"
-    "5) If insufficient, say so briefly in Reasoning and answer succinctly.
-"
-)
+STRICT RULES:
+1) Grounding: reference specific frame indices and/or segment time ranges.
+2) Visual first for actions/objects; text first for dialogue facts.
+3) No outside knowledge.
+4) Be concise; no punctuation in Final Answer.
+5) If insufficient, say so briefly in Reasoning and answer succinctly.
+"""
 
 TEMPLATE_VISION_TEXT_TWO_STEP = (
     "You are given a short sequence of movie frames and the aligned subtitle segments.\n"
@@ -483,8 +485,7 @@ def build_two_step_messages_with_subs(
         .replace("{SUBTITLE_BLOCK}", sub_block)
         .replace("{FRAME_LIST}", frame_list)
         .replace("{QUESTION}", question)
-        .replace("{KEYFRAME_HINT}", (keyframe_hint_text + "
-") if keyframe_hint_text else "")
+        .replace("{KEYFRAME_HINT}", (keyframe_hint_text + "\n") if keyframe_hint_text else "")
     )
     content.append({"type": "text", "text": prompt_text})
     return [{"role": "user", "content": content}]
@@ -506,8 +507,7 @@ def build_two_step_messages_interleaved(
     header = (
         TEMPLATE_INTERLEAVED_HEADER
         .replace("{QUESTION}", question)
-        .replace("{KEYFRAME_HINT}", (keyframe_hint_text + "
-") if keyframe_hint_text else "")
+        .replace("{KEYFRAME_HINT}", (keyframe_hint_text + "\n") if keyframe_hint_text else "")
     )
     content.append({"type": "text", "text": header})
 
@@ -522,13 +522,12 @@ def build_two_step_messages_interleaved(
                 lines.append(f"Segment ({s:.2f}s–{e:.2f}s): {txt}")
         else:
             lines.append("[No nearby subtitle segment]")
-        content.append({"type": "text", "text": "
-".join(lines)})
+        content.append({"type": "text", "text": "\n".join(lines)})
 
     return [{"role": "user", "content": content}]
 
 @torch.inference_mode()
-def generate_two_step(model, processor, messages, max_new_tokens=64, temperature=0.0, do_sample=False):
+def generate_two_step(model, processor, messages, max_new_tokens=256, temperature=0.0, do_sample=False):
     text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     imgs = []
     for item in messages[0]["content"]:
@@ -580,7 +579,13 @@ def main(args):
     ann_dir = root / "annotations"
     out_root = root / "out_preprocessed"
 
-    model, processor = load_qwen_vl(args.model_name_or_path, use_4bit=args.use_4bit, device_map="auto")
+    model, processor = load_qwen_vl(
+        args.model_name_or_path,
+        use_4bit=args.use_4bit,
+        device_map="auto",
+        peft_adapter_path=args.peft_adapter,
+        peft_merge=args.peft_merge,
+    )
     embsim = EmbSim(args.embed_model)
 
     out_path = Path(args.output_file)
@@ -588,9 +593,24 @@ def main(args):
     fout = open(out_path, "w", encoding="utf-8")
 
     ems=[]; f1s=[]; b1s=[]; b4bps=[]; rls=[]; ecs=[]
+    rls_reasoning = []
+    ecs_reasoning = []
     processed = 0
 
-    ann_files = sorted(ann_dir.glob("*.json"))
+    ann_files_all = sorted(ann_dir.glob("*.json"))
+    rng = random.Random(args.seed)
+    ann_files_shuf = ann_files_all[:]
+    rng.shuffle(ann_files_shuf)
+    cut = int(len(ann_files_shuf) * args.split_ratio)
+
+    if args.split == "train":
+        ann_files = ann_files_shuf[:cut]
+    elif args.split == "eval":
+        ann_files = ann_files_shuf[cut:]
+    else:
+        ann_files = ann_files_all
+
+    print(f"[Info] Using {args.split.upper()} split: {len(ann_files)} movies")
     print(f"[Info] Found {len(ann_files)} movies in annotations/")
     for ann_file in ann_files:
         movie = ann_file.stem
@@ -611,7 +631,7 @@ def main(args):
         with open(ann_file, "r", encoding="utf-8") as f:
             items = json.load(f)
 
-        for it in items:
+        for it in tqdm(items, desc = f"Processing {movie}"):
             try:
                 q = it["question"].strip()
                 gold = it["answer"].strip()
@@ -693,11 +713,6 @@ def main(args):
                         do_sample=args.do_sample
                     )
 
-                        model, processor, messages,
-                        max_new_tokens=args.max_new_tokens,
-                        temperature=args.temperature,
-                        do_sample=args.do_sample
-                    )
                     pred_reason, pred_answer = parse_two_step_output(raw)
 
                 # --- Metrics on Final Answer ---
@@ -709,12 +724,21 @@ def main(args):
 
                 ems.append(emv); f1s.append(f1v); b1s.append(b1); b4bps.append(b4bp); rls.append(rl); ecs.append(ec)
 
+                gold_reason = ""
+                if "reasoning" in it and it["reasoning"]:
+                    gold_reason = it["reasoning"].strip()
+                    rl_r = rouge_l(pred_reason, gold_reason)
+                    ec_r = embsim.score(pred_reason, gold_reason)
+                    rls_reasoning.append(rl_r)
+                    ecs_reasoning.append(ec_r)
+
                 rec = {
                     "movie": movie,
                     "index": idx,
                     "timestamp": it["timestamp"],
                     "contextTimestamp": it["contextTimestamp"],
                     "question": q,
+                    "gold_reasoning": gold_reason,
                     "gold_answer": gold,
                     "pred_reasoning": pred_reason,
                     "pred_answer": pred_answer,
@@ -726,6 +750,7 @@ def main(args):
                         {"start": s, "end": e, "text": t} for (s,e,t) in segs
                     ],
                 }
+
                 fout.write(json.dumps(rec) + "\n")
                 processed += 1
                 if args.limit and processed >= args.limit:
@@ -754,6 +779,8 @@ def main(args):
             "BLEU4_BP": avg(b4bps),
             "ROUGE_L": avg(rls),
             "EmbedCos": avg(ecs),
+            "ROUGE_L_Reasoning": avg(rls_reasoning),
+            "EmbedCos_Reasoning": avg(ecs_reasoning)
         },
         "output_file": str(out_path)
     }
@@ -774,7 +801,7 @@ if __name__ == "__main__":
                     help="One of {blend_blur_with_last_frame, weighted_average, weighted_average_exponential, weighted_average_ramp} or your custom.")
     ap.add_argument("--max_frames", type=int, default=3, help="If pooling=method, how many frames to pass (1 ⇒ blur-like).")
     ap.add_argument("--max_segments", type=int, default=8, help="Max subtitle segments to include from the window.")
-    ap.add_argument("--max_new_tokens", type=int, default=64)
+    ap.add_argument("--max_new_tokens", type=int, default=256)
     ap.add_argument("--temperature", type=float, default=0.0)
     ap.add_argument("--do_sample", action="store_true")
     ap.add_argument("--embed_model", type=str, default="sentence-transformers/all-mpnet-base-v2")
@@ -792,6 +819,17 @@ if __name__ == "__main__":
                     help="Number of subtitle segments to attach to each frame when interleaving.")
     ap.add_argument("--seg_radius", type=float, default=2.0,
                     help="Max seconds from a frame time to pull a non-overlapping subtitle segment.")
+
+    ap.add_argument("--peft_adapter", type=str, default=None,
+                    help="Path to a PEFT/LoRA adapter dir (e.g., models/sft-qwen7b-interleaved-16f/<method>)")
+    ap.add_argument("--peft_merge", action="store_true",
+                    help="Merge LoRA weights into the base at load time")
+
+    ap.add_argument("--split", type=str, choices=["all","train","eval"], default="all",
+                    help="Movie-level split: all/train/eval (same deterministic split as training)")
+    ap.add_argument("--split_ratio", type=float, default=0.9,
+                    help="Fraction of movies for training part of the split (seeded)")
+    ap.add_argument("--seed", type=int, default=42, help="Seed for deterministic movie split")
     args = ap.parse_args()
 
     main(args)
