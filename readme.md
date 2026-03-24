@@ -88,6 +88,56 @@ scripts/
 
 **Note on splits:** For ReasonVQA training, a **movie-level split** is created via `--split_ratio 0.9` with `--seed 42`, mirrored in eval to avoid leakage.
 
+### Downloading the Preprocessed Release from Hugging Face
+
+We provide the released **preprocessed ReasonVQA artifacts** on Hugging Face:
+
+`https://huggingface.co/datasets/ashimdahal/povqa-preprocessed`
+
+The Hugging Face dataset stores each movie's frame directories as `.tar` archives to keep the repo upload-friendly. After download, extract those archives back into the `out_preprocessed/` structure expected by the training and evaluation scripts.
+
+```bash
+DATASET_ID="ashimdahal/povqa-preprocessed"
+DOWNLOAD_DIR="hf_downloads/povqa-preprocessed"
+
+huggingface-cli download "$DATASET_ID" \
+  --repo-type dataset \
+  --local-dir "$DOWNLOAD_DIR"
+
+mkdir -p out_preprocessed
+rsync -a \
+  --exclude README.md \
+  --exclude manifest.json \
+  "$DOWNLOAD_DIR"/ out_preprocessed/
+```
+
+Then extract all archived frame folders in place:
+
+```bash
+find out_preprocessed -mindepth 2 -maxdepth 2 -type f -name '*.tar' -print0 | \
+  while IFS= read -r -d '' archive; do
+    tar -xf "$archive" -C "$(dirname "$archive")"
+  done
+```
+
+After extraction, each movie directory will again contain folders such as:
+
+* `KEY_FRAMES/`
+* `blend_blur_with_last_frame/`
+* `weighted_average/`
+* `weighted_average_exponential/`
+* `weighted_average_ramp/`
+
+alongside the `metadata_text_centric*.json` files and `run_summary.json`.
+
+If you want to save disk space after extraction, you can remove the downloaded tar archives:
+
+```bash
+find out_preprocessed -mindepth 2 -maxdepth 2 -type f -name '*.tar' -delete
+```
+
+At that point, `out_preprocessed/` is in the format expected by the rest of this repository for training and evaluation.
+
 ---
 
 ## Temporal Pooling & Context Shaping
