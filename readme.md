@@ -1,4 +1,4 @@
-# POVQA: Preference-Optimized Video Question Answering (ReasonVQA & TVQA)
+# POVQA: Preference-Optimized Video Question Answering with Rationales for Data Efficiency
 
 > Accepted to the MAR Workshop at CVPR 2026.
 
