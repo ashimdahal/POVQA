@@ -20,7 +20,7 @@ The scripts are **self-contained**: they discover adapters on disk, mirror train
 
 ## Overview
 
-* **Backbone**: `Qwen/Qwen2.5-VL-7B-Instruct` in **4-bit** (QLoRA)
+* **Backbone**: `Qwen/Qwen2.5-VL-7B-Instruct` in **4-bit** (QLoRA); forwards compatible with qwen3.5 vl
 * **Temporal evidence**: 4 pooling strategies
 
   * `blend_blur_with_last_frame (BBLF)`
